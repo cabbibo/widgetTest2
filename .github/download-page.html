@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WidgetTest — Download</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      background: #0a0a0a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    h1 { font-size: 2rem; font-weight: 300; letter-spacing: 0.15em; text-transform: uppercase; }
+    p { color: #666; font-size: 0.9rem; text-align: center; max-width: 380px; line-height: 1.6; }
+    .buttons { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    a.btn {
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 28px; min-width: 200px;
+      border: 1px solid #333; border-radius: 8px;
+      text-decoration: none; color: #fff; background: #111;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    a.btn:hover { background: #1a1a1a; border-color: #555; }
+    a.btn.disabled { opacity: 0.4; pointer-events: none; }
+    a.btn svg { flex-shrink: 0; opacity: 0.7; }
+    .btn-label { display: flex; flex-direction: column; gap: 2px; }
+    .btn-label .platform { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.1em; }
+    .btn-label .action { font-size: 1rem; font-weight: 500; }
+    .note { font-size: 0.75rem; color: #444; text-align: center; }
+    #version { color: #555; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <h1>WidgetTest</h1>
+  <p>A transparent floating 3D widget. Drag it anywhere on your screen. Press Escape to quit.</p>
+
+  <div class="buttons">
+    <a class="btn disabled" id="mac-btn" href="#">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 2C7.5 2 4 5.9 4 10.7c0 3.5 1.9 6.6 4.8 8.2L12 22l3.2-3.1C18.1 17.3 20 14.2 20 10.7 20 5.9 16.5 2 12 2z"/>
+      </svg>
+      <span class="btn-label">
+        <span class="platform">macOS</span>
+        <span class="action" id="mac-label">Loading…</span>
+      </span>
+    </a>
+
+    <a class="btn disabled" id="win-btn" href="#">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="8" height="8" rx="1"/>
+        <rect x="13" y="3" width="8" height="8" rx="1"/>
+        <rect x="3" y="13" width="8" height="8" rx="1"/>
+        <rect x="13" y="13" width="8" height="8" rx="1"/>
+      </svg>
+      <span class="btn-label">
+        <span class="platform">Windows</span>
+        <span class="action" id="win-label">Loading…</span>
+      </span>
+    </a>
+  </div>
+
+  <p class="note">
+    macOS: Apple Silicon · Windows: NSIS installer<br>
+    Windows SmartScreen may warn on first run — click "More info" → "Run anyway"
+  </p>
+  <p id="version"></p>
+
+  <script>
+    const host = window.location.hostname;
+    const owner = host.replace('.github.io', '');
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const repo = parts[0] || 'widget-tauri';
+
+    fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`)
+      .then(r => r.json())
+      .then(release => {
+        document.getElementById('version').textContent = release.tag_name;
+
+        const mac = release.assets.find(a => a.name.endsWith('.dmg'));
+        const win = release.assets.find(a => a.name.endsWith('.exe') || a.name.endsWith('.msi'));
+
+        if (mac) {
+          const btn = document.getElementById('mac-btn');
+          btn.href = mac.browser_download_url;
+          btn.classList.remove('disabled');
+          document.getElementById('mac-label').textContent = 'Download .dmg';
+        }
+        if (win) {
+          const btn = document.getElementById('win-btn');
+          btn.href = win.browser_download_url;
+          btn.classList.remove('disabled');
+          document.getElementById('win-label').textContent = 'Download .exe';
+        }
+      })
+      .catch(() => {
+        document.getElementById('mac-label').textContent = 'No release yet';
+        document.getElementById('win-label').textContent = 'No release yet';
+      });
+  </script>
+</body>
+</html>
