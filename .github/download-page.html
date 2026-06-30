@@ -181,9 +181,13 @@
       .then(release => {
         document.getElementById('version').textContent = 'Latest release ' + release.tag_name;
         const assets = release.assets || [];
+        // Tauri replaces spaces in productName with '.' (or '_') in filenames,
+        // so match on a separator-stripped slug. Extension is checked on the
+        // original name (before stripping dots).
+        const slug = s => s.toLowerCase().replace(/[\s._-]/g, '');
         const find = (product, exts) => assets.find(a => {
-          const n = a.name.toLowerCase();
-          return n.startsWith(product.toLowerCase()) && exts.some(e => n.endsWith(e));
+          const orig = a.name.toLowerCase();
+          return slug(a.name).startsWith(slug(product)) && exts.some(e => orig.endsWith(e));
         });
         WIDGETS.forEach(w => {
           setBtn(w.product, 'mac', find(w.product, ['.dmg']));
