@@ -1,0 +1,46 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="l-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2bd0c4"/>
+      <stop offset="1" stop-color="#1d8f9e"/>
+    </linearGradient>
+    <radialGradient id="l-glass" cx="0.38" cy="0.34" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="0.55" stop-color="#dff7ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#bfeaf2" stop-opacity="0.35"/>
+    </radialGradient>
+    <linearGradient id="l-rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe08a"/>
+      <stop offset="1" stop-color="#f4a93c"/>
+    </linearGradient>
+    <linearGradient id="l-handle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4a93c"/>
+      <stop offset="1" stop-color="#c97a1e"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#l-bg)"/>
+
+  <!-- faint text being magnified, behind glass -->
+  <g stroke="#0f6f78" stroke-width="14" stroke-linecap="round" opacity="0.35">
+    <path d="M300 372 h150"/>
+    <path d="M300 430 h240"/>
+    <path d="M300 488 h180"/>
+  </g>
+
+  <!-- handle -->
+  <path d="M566 566 q150 110 196 196 q34 64 -20 96 q-58 28 -92 -34 q-46 -86 -154 -198 z"
+        fill="url(#l-handle)" stroke="#9a5b14" stroke-width="10" stroke-linejoin="round"/>
+
+  <!-- glass + rim -->
+  <circle cx="436" cy="436" r="232" fill="url(#l-glass)" stroke="url(#l-rim)" stroke-width="44"/>
+  <circle cx="436" cy="436" r="232" fill="none" stroke="#9a5b14" stroke-width="8" opacity="0.5"/>
+
+  <!-- big crisp letter inside the lens (what it reads) -->
+  <text x="436" y="510" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="240" font-weight="800" text-anchor="middle" fill="#1d8f9e">A</text>
+
+  <!-- shine -->
+  <path d="M318 330 q40 -64 116 -78" fill="none" stroke="#ffffff" stroke-width="22"
+        stroke-linecap="round" opacity="0.85"/>
+</svg>

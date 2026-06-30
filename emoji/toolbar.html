@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; user-select: none; }
+    #wrap { display: flex; flex-direction: column; align-items: center; padding: 8px; }
+    #pill { display: flex; align-items: center; gap: 4px;
+      background: rgba(12,14,26,0.92); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px; padding: 7px 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+      backdrop-filter: blur(10px); }
+    .btn { font-size: 26px; line-height: 1; background: none; border: none; cursor: pointer;
+      color: #eceeffff; padding: 4px 5px; border-radius: 11px; transition: background 0.1s; }
+    .btn:hover { background: rgba(255,255,255,0.12); }
+    .btn.editing { background: rgba(90,125,255,0.28); outline: 2px solid #5a7dff; }
+    .btn.ico { font-size: 22px; font-weight: 600; color: #cdd3e8; }
+    .btn.close { font-size: 17px; font-weight: 700; color: #ff7a7a; }
+    .btn.close:hover { background: rgba(255,80,80,0.25); }
+    .sep { width: 1px; height: 26px; background: rgba(255,255,255,0.15); margin: 0 3px; }
+    #picker { margin-top: 8px; background: rgba(12,14,26,0.96);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 12px;
+      display: none; flex-direction: column; width: 496px; }
+    #picker.open { display: flex; }
+    .pick-input { display: flex; gap: 5px; margin-bottom: 8px; }
+    .pick-input input { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 9px; color: #fff; font-size: 15px; padding: 7px 10px; outline: none; }
+    .pick-input input::placeholder { color: rgba(255,255,255,0.35); }
+    .pick-remove { width: 100%; margin-bottom: 8px;
+      background: rgba(255,90,90,0.12); border: 1px solid rgba(255,90,90,0.3); border-radius: 9px;
+      color: #ff8d8d; font-size: 12px; font-weight: 600; letter-spacing: 0.4px; padding: 7px; cursor: pointer; }
+    .pick-remove:hover { background: rgba(255,90,90,0.22); }
+    .pick-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px;
+      max-height: 244px; overflow-y: auto; overscroll-behavior: contain; }
+    .pick-grid::-webkit-scrollbar { width: 8px; }
+    .pick-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+    .pick { font-size: 22px; background: none; border: none; cursor: pointer; padding: 4px; border-radius: 8px; color: #fff; }
+    .pick:hover { background: rgba(255,255,255,0.14); }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div id="pill"></div>
+    <div id="picker"></div>
+  </div>
+  <script type="module" src="/src/toolbar.js"></script>
+</body>
+</html>

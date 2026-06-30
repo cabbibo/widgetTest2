@@ -1,5 +1,11 @@
+# dependencies
 node_modules/
+
+# build output (root workspace target + per-widget dist)
 dist/
-src/three.js
-src-tauri/target/
+target/
+
+# vendored three.js bundle (resolved from the npm package at build time)
+**/src/three.js
+
 .DS_Store

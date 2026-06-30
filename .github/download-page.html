@@ -3,105 +3,198 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WidgetTest — Download</title>
+  <title>Desktop Widgets — Download</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0c0a14;
+      --card: #15121f;
+      --card-hover: #1b1726;
+      --line: #2a2440;
+      --line-soft: #221d35;
+      --text: #f3eefe;
+      --muted: #8a83a6;
+      --faint: #5b5475;
+      --accent: #ff8da3;
+      --accent-soft: rgba(255,141,163,0.14);
+    }
     body {
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 48px;
-      background: #0a0a0a;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background:
+        radial-gradient(900px 500px at 18% -10%, rgba(124,92,174,0.22), transparent 60%),
+        radial-gradient(800px 480px at 90% 0%, rgba(43,208,196,0.12), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-rounded, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 72px 24px 96px;
+      -webkit-font-smoothing: antialiased;
     }
-    h1 { font-size: 2rem; font-weight: 300; letter-spacing: 0.15em; text-transform: uppercase; }
-    p { color: #666; font-size: 0.9rem; text-align: center; max-width: 380px; line-height: 1.6; }
-    .buttons { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    header { text-align: center; max-width: 640px; margin: 0 auto 56px; }
+    h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.02em; }
+    header p { color: var(--muted); font-size: 1.05rem; line-height: 1.6; margin-top: 14px; }
+    .os-pill {
+      display: inline-flex; align-items: center; gap: 8px; margin-top: 22px;
+      padding: 7px 16px; border-radius: 999px; border: 1px solid var(--line);
+      background: var(--card); color: var(--muted); font-size: 0.82rem;
+    }
+    .os-pill b { color: var(--text); font-weight: 700; }
+
+    .grid {
+      display: grid; gap: 22px; max-width: 760px; margin: 0 auto;
+      grid-template-columns: 1fr;
+    }
+    .card {
+      display: flex; gap: 22px; align-items: center;
+      padding: 24px; border-radius: 22px;
+      background: var(--card); border: 1px solid var(--line-soft);
+      transition: border-color .18s, background .18s, transform .18s;
+    }
+    .card:hover { background: var(--card-hover); border-color: var(--line); transform: translateY(-2px); }
+    .card .icon {
+      width: 116px; height: 116px; flex-shrink: 0; border-radius: 26px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
+    .card .body { flex: 1; min-width: 0; }
+    .card h2 { font-size: 1.4rem; font-weight: 800; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .card .tagline { color: var(--accent); font-size: 0.82rem; font-weight: 600; }
+    .card .desc { color: var(--muted); font-size: 0.93rem; line-height: 1.55; margin: 8px 0 16px; }
+
+    .dl-row { display: flex; gap: 10px; flex-wrap: wrap; }
     a.btn {
-      display: flex; align-items: center; gap: 12px;
-      padding: 16px 28px; min-width: 200px;
-      border: 1px solid #333; border-radius: 8px;
-      text-decoration: none; color: #fff; background: #111;
-      transition: background 0.15s, border-color 0.15s;
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 11px 16px; border-radius: 11px;
+      border: 1px solid var(--line); background: #0f0d17; color: var(--text);
+      text-decoration: none; font-size: 0.9rem; font-weight: 600;
+      transition: background .15s, border-color .15s, opacity .15s;
     }
-    a.btn:hover { background: #1a1a1a; border-color: #555; }
+    a.btn:hover { background: #181426; border-color: var(--faint); }
+    a.btn svg { flex-shrink: 0; opacity: 0.85; }
+    a.btn .sub { color: var(--faint); font-weight: 500; font-size: 0.78rem; }
+    a.btn.is-native { border-color: var(--accent); background: var(--accent-soft); }
+    a.btn.is-native:hover { background: rgba(255,141,163,0.2); }
     a.btn.disabled { opacity: 0.4; pointer-events: none; }
-    a.btn svg { flex-shrink: 0; opacity: 0.7; }
-    .btn-label { display: flex; flex-direction: column; gap: 2px; }
-    .btn-label .platform { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.1em; }
-    .btn-label .action { font-size: 1rem; font-weight: 500; }
-    .note { font-size: 0.75rem; color: #444; text-align: center; }
-    #version { color: #555; font-size: 0.8rem; }
+
+    footer { text-align: center; color: var(--faint); font-size: 0.78rem; margin-top: 64px; line-height: 1.7; }
+    footer a { color: var(--muted); }
+    #version { color: var(--faint); }
   </style>
 </head>
 <body>
-  <h1>WidgetTest</h1>
-  <p>A transparent floating 3D widget. Drag it anywhere on your screen. Press Escape to quit.</p>
+  <header>
+    <h1>Desktop Widgets</h1>
+    <p>Tiny transparent companions that float on your desktop. Pick one — they're free, drag&#8209;anywhere, and quit with Escape.</p>
+    <div class="os-pill" id="os-pill">Detecting your system…</div>
+  </header>
 
-  <div class="buttons">
-    <a class="btn disabled" id="mac-btn" href="#">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M12 2C7.5 2 4 5.9 4 10.7c0 3.5 1.9 6.6 4.8 8.2L12 22l3.2-3.1C18.1 17.3 20 14.2 20 10.7 20 5.9 16.5 2 12 2z"/>
-      </svg>
-      <span class="btn-label">
-        <span class="platform">macOS</span>
-        <span class="action" id="mac-label">Loading…</span>
-      </span>
-    </a>
+  <main class="grid" id="grid"></main>
 
-    <a class="btn disabled" id="win-btn" href="#">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <rect x="3" y="3" width="8" height="8" rx="1"/>
-        <rect x="13" y="3" width="8" height="8" rx="1"/>
-        <rect x="3" y="13" width="8" height="8" rx="1"/>
-        <rect x="13" y="13" width="8" height="8" rx="1"/>
-      </svg>
-      <span class="btn-label">
-        <span class="platform">Windows</span>
-        <span class="action" id="win-label">Loading…</span>
-      </span>
-    </a>
-  </div>
-
-  <p class="note">
-    macOS: Apple Silicon · Windows: NSIS installer<br>
-    Windows SmartScreen may warn on first run — click "More info" → "Run anyway"
-  </p>
-  <p id="version"></p>
+  <footer>
+    <p>macOS builds are Apple&nbsp;Silicon · Windows builds are NSIS installers.<br>
+    First launch: macOS may need <i>System&nbsp;Settings → Privacy</i> permissions; Windows SmartScreen → “More&nbsp;info” → “Run&nbsp;anyway”.</p>
+    <p id="version"></p>
+  </footer>
 
   <script>
+    // ── Widget catalog ────────────────────────────────────────────────────────
+    // `product` must match the Tauri productName (asset filename prefix).
+    // `win:false` → Windows build intentionally not shipped (macOS-only features).
+    const WIDGETS = [
+      {
+        product: 'Mushroom', icon: 'icons/mushroom.png',
+        tagline: 'a little desktop friend',
+        desc: 'A glowing 3D mushroom that sits on your desktop. No purpose, all vibes — drag it wherever it makes you smile.',
+        win: false,
+      },
+      {
+        product: 'Tassels', icon: 'icons/tassels.png',
+        tagline: 'emoji pendants for your windows',
+        desc: 'Little emoji dangle from the edges of every window, swinging when you drag and scattering from your cursor. Pick your own emoji in the toolbar.',
+        win: true,
+      },
+      {
+        product: 'Lens', icon: 'icons/lens.png',
+        tagline: 'a magnifier that reads',
+        desc: 'A floating magnifying glass that enlarges whatever’s behind it, then reads the word under it and shows its definition, synonyms, and word history. Powered by on-device OCR + the macOS dictionary.',
+        win: false,
+      },
+    ];
+
+    const ICONS = {
+      mac: '<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.8-2.2c.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.8zM14.2 5.9c.6-.8 1-1.9.9-3-1 0-2.1.7-2.8 1.5-.6.7-1.1 1.8-1 2.8 1.1.1 2.2-.5 2.9-1.3z"/></svg>',
+      win: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5 10.5 4.4v7.1H3V5.5zM3 12.5h7.5v7.1L3 18.5v-6zM11.5 4.2 21 3v8.5h-9.5V4.2zM11.5 12.5H21V21l-9.5-1.3v-7.2z"/></svg>',
+    };
+
+    // ── Detect OS ─────────────────────────────────────────────────────────────
+    const ua = navigator.userAgent;
+    const isWin = /Win/i.test(navigator.platform) || /Windows/i.test(ua);
+    const isMac = !isWin && (/Mac/i.test(navigator.platform) || /Mac OS X/i.test(ua));
+    const nativeOS = isWin ? 'win' : isMac ? 'mac' : null;
+    const pill = document.getElementById('os-pill');
+    pill.innerHTML = nativeOS === 'mac' ? 'Detected <b>macOS</b> — your download is highlighted'
+                   : nativeOS === 'win' ? 'Detected <b>Windows</b> — your download is highlighted'
+                   : 'Choose your platform below';
+
+    // ── Render cards ──────────────────────────────────────────────────────────
+    const grid = document.getElementById('grid');
+    WIDGETS.forEach(w => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const macNative = nativeOS === 'mac' ? ' is-native' : '';
+      const winNative = nativeOS === 'win' ? ' is-native' : '';
+      const winBtn = w.win
+        ? `<a class="btn disabled${winNative}" data-product="${w.product}" data-os="win" href="#">${ICONS.win}<span>Windows <span class="sub">…</span></span></a>`
+        : `<a class="btn disabled" title="macOS-only for now">${ICONS.win}<span>Windows <span class="sub">coming soon</span></span></a>`;
+      card.innerHTML = `
+        <img class="icon" src="${w.icon}" alt="${w.product} icon">
+        <div class="body">
+          <h2>${w.product} <span class="tagline">${w.tagline}</span></h2>
+          <p class="desc">${w.desc}</p>
+          <div class="dl-row">
+            <a class="btn disabled${macNative}" data-product="${w.product}" data-os="mac" href="#">${ICONS.mac}<span>macOS <span class="sub">…</span></span></a>
+            ${winBtn}
+          </div>
+        </div>`;
+      grid.appendChild(card);
+    });
+
+    // ── Wire up release assets ────────────────────────────────────────────────
     const host = window.location.hostname;
     const owner = host.replace('.github.io', '');
-    const parts = window.location.pathname.split('/').filter(Boolean);
-    const repo = parts[0] || 'widget-tauri';
+    const repo = (window.location.pathname.split('/').filter(Boolean)[0]) || 'widget-tauri';
+
+    function setBtn(product, os, asset) {
+      const btn = document.querySelector(`a.btn[data-product="${product}"][data-os="${os}"]`);
+      if (!btn) return;
+      const sub = btn.querySelector('.sub');
+      if (asset) {
+        btn.href = asset.browser_download_url;
+        btn.classList.remove('disabled');
+        const ext = asset.name.split('.').pop();
+        sub.textContent = '.' + ext;
+      } else {
+        sub.textContent = 'building…';
+      }
+    }
 
     fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`)
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(release => {
-        document.getElementById('version').textContent = release.tag_name;
-
-        const mac = release.assets.find(a => a.name.endsWith('.dmg'));
-        const win = release.assets.find(a => a.name.endsWith('.exe') || a.name.endsWith('.msi'));
-
-        if (mac) {
-          const btn = document.getElementById('mac-btn');
-          btn.href = mac.browser_download_url;
-          btn.classList.remove('disabled');
-          document.getElementById('mac-label').textContent = 'Download .dmg';
-        }
-        if (win) {
-          const btn = document.getElementById('win-btn');
-          btn.href = win.browser_download_url;
-          btn.classList.remove('disabled');
-          document.getElementById('win-label').textContent = 'Download .exe';
-        }
+        document.getElementById('version').textContent = 'Latest release ' + release.tag_name;
+        const assets = release.assets || [];
+        const find = (product, exts) => assets.find(a => {
+          const n = a.name.toLowerCase();
+          return n.startsWith(product.toLowerCase()) && exts.some(e => n.endsWith(e));
+        });
+        WIDGETS.forEach(w => {
+          setBtn(w.product, 'mac', find(w.product, ['.dmg']));
+          if (w.win) setBtn(w.product, 'win', find(w.product, ['.exe', '.msi']));
+        });
       })
       .catch(() => {
-        document.getElementById('mac-label').textContent = 'No release yet';
-        document.getElementById('win-label').textContent = 'No release yet';
+        document.querySelectorAll('a.btn .sub').forEach(s => {
+          if (s.textContent === '…') s.textContent = 'no release yet';
+        });
+        document.getElementById('version').textContent = 'No release published yet';
       });
   </script>
 </body>

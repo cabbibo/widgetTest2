@@ -3,6 +3,7 @@ name: Build & Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -10,12 +11,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            args: '--target aarch64-apple-darwin'
-            rust-targets: aarch64-apple-darwin
-          - platform: windows-latest
-            args: ''
-            rust-targets: ''
+          # ── macOS (Apple Silicon) — all three widgets ──────────────────────
+          - { platform: macos-latest, widget: mushroom,  args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
+          - { platform: macos-latest, widget: emoji,      args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
+          - { platform: macos-latest, widget: magnifier,  args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
+          # ── Windows — Tassels (emoji) only; Lens & Mushroom are macOS-only ──
+          - { platform: windows-latest, widget: emoji,    args: '', rust-target: '' }
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -24,28 +25,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.rust-targets }}
+          targets: ${{ matrix.rust-target }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: ./src-tauri -> target
+          # One shared workspace target at the repo root; key per widget bundle.
+          key: ${{ matrix.widget }}
 
       - name: Install frontend deps
+        working-directory: ${{ matrix.widget }}
         run: npm install
 
-      - name: Build app
+      - name: Build & upload ${{ matrix.widget }}
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          projectPath: ${{ matrix.widget }}
           tagName: v__VERSION__
-          releaseName: WidgetTest v__VERSION__
-          releaseBody: Transparent floating 3D widget. Drag it anywhere. Press Escape to quit.
+          releaseName: Desktop Widgets v__VERSION__
+          releaseBody: |
+            Transparent floating desktop widgets. Drag anywhere, press Escape to quit.
+            Download the one you want from https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
@@ -62,10 +67,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Write download page
+      - name: Assemble site
         run: |
-          mkdir -p _site
+          mkdir -p _site/icons
           cp .github/download-page.html _site/index.html
+          cp brand/icons/*.png _site/icons/
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,0 +1,52 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="m-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a1c5e"/>
+      <stop offset="1" stop-color="#1b1033"/>
+    </linearGradient>
+    <radialGradient id="m-glow" cx="0.5" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#ff6b8b" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff6b8b" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="m-cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a90"/>
+      <stop offset="1" stop-color="#e23e57"/>
+    </linearGradient>
+    <linearGradient id="m-stem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6e9"/>
+      <stop offset="1" stop-color="#f2d9b8"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#m-bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#m-glow)"/>
+
+  <!-- ground squiggle -->
+  <path d="M250 770 q60 -34 130 -8 q70 26 140 2 q70 -24 150 4" fill="none"
+        stroke="#7a5cae" stroke-width="14" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- stem (slightly wobbly, hand-drawn) -->
+  <path d="M438 742 q-10 -120 18 -196 q56 -16 112 0 q26 78 14 196 q-72 30 -144 0 z"
+        fill="url(#m-stem)" stroke="#caa97f" stroke-width="6"/>
+  <!-- little gills shadow under cap -->
+  <path d="M430 556 q82 30 164 0" fill="none" stroke="#d8b98f" stroke-width="10" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- cap -->
+  <path d="M276 540 q14 -210 236 -222 q222 12 236 222 q-236 64 -472 0 z"
+        fill="url(#m-cap)" stroke="#b62f45" stroke-width="8" stroke-linejoin="round"/>
+
+  <!-- white spots -->
+  <ellipse cx="392" cy="436" rx="40" ry="34" fill="#fff6e9"/>
+  <ellipse cx="560" cy="392" rx="30" ry="26" fill="#fff6e9"/>
+  <ellipse cx="648" cy="476" rx="34" ry="28" fill="#fff6e9"/>
+  <ellipse cx="486" cy="494" rx="24" ry="20" fill="#fff6e9"/>
+  <ellipse cx="328" cy="500" rx="20" ry="17" fill="#fff6e9"/>
+
+  <!-- happy face -->
+  <circle cx="470" cy="660" r="9" fill="#7a4a2e"/>
+  <circle cx="556" cy="660" r="9" fill="#7a4a2e"/>
+  <path d="M474 686 q40 30 78 0" fill="none" stroke="#7a4a2e" stroke-width="8" stroke-linecap="round"/>
+  <path d="M452 648 q14 6 12 -8" fill="#ffb3c0" opacity="0"/>
+  <ellipse cx="452" cy="678" rx="14" ry="9" fill="#ff9bb0" opacity="0.6"/>
+  <ellipse cx="586" cy="678" rx="14" ry="9" fill="#ff9bb0" opacity="0.6"/>
+</svg>

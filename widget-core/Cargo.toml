@@ -1,0 +1,12 @@
+[package]
+name = "widget-core"
+version = "0.1.0"
+edition = "2021"
+description = "Shared capabilities for the desktop widgets: screen capture, OCR, permissions, window enumeration."
+
+[lib]
+name = "widget_core"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+png = "0.17"

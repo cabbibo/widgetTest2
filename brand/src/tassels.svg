@@ -1,0 +1,39 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="t-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd66b"/>
+      <stop offset="1" stop-color="#ff9e5e"/>
+    </linearGradient>
+    <linearGradient id="t-bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a3a8f"/>
+      <stop offset="1" stop-color="#46286f"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#t-bg)"/>
+
+  <!-- a little "window" the tassels hang from -->
+  <rect x="232" y="232" width="560" height="150" rx="34" fill="#fff7ec" stroke="#46286f" stroke-width="12"/>
+  <rect x="232" y="232" width="560" height="62" rx="34" fill="url(#t-bar)"/>
+  <rect x="232" y="262" width="560" height="32" fill="url(#t-bar)"/>
+  <circle cx="286" cy="263" r="11" fill="#ff6b6b"/>
+  <circle cx="324" cy="263" r="11" fill="#ffd93d"/>
+  <circle cx="362" cy="263" r="11" fill="#6bcB77"/>
+
+  <!-- pendant 1: smiley, short string -->
+  <path d="M330 382 q-6 60 2 96" fill="none" stroke="#46286f" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="332" cy="540" r="66" fill="#ffd93d" stroke="#46286f" stroke-width="10"/>
+  <circle cx="312" cy="528" r="9" fill="#46286f"/>
+  <circle cx="352" cy="528" r="9" fill="#46286f"/>
+  <path d="M304 558 q28 30 56 0" fill="none" stroke="#46286f" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- pendant 2: heart, longer string -->
+  <path d="M512 382 q8 92 -4 150" fill="none" stroke="#46286f" stroke-width="7" stroke-linecap="round"/>
+  <path d="M508 612 q-58 -52 -86 -8 q-22 38 86 96 q108 -58 86 -96 q-28 -44 -86 8 z"
+        fill="#ff6b81" stroke="#46286f" stroke-width="10" stroke-linejoin="round"/>
+
+  <!-- pendant 3: star, medium string -->
+  <path d="M694 382 q4 50 0 80" fill="none" stroke="#46286f" stroke-width="7" stroke-linecap="round"/>
+  <path d="M694 470 l24 50 56 8 -40 40 10 56 -50 -27 -50 27 10 -56 -40 -40 56 -8 z"
+        fill="#6bc6ff" stroke="#46286f" stroke-width="10" stroke-linejoin="round"/>
+</svg>
