@@ -176,8 +176,23 @@
       }
     }
 
-    fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    // Prefer the release data baked into the site at deploy time (same-origin,
+    // no rate limit, not blocked by extensions). Fall back to the live API for
+    // local previews or if release.json is missing.
+    async function getRelease() {
+      try {
+        const r = await fetch('./release.json', { cache: 'no-store' });
+        if (r.ok) {
+          const j = await r.json();
+          if (j && Array.isArray(j.assets) && j.assets.length) return j;
+        }
+      } catch (_) {}
+      const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
+      if (!r.ok) throw r.status;
+      return r.json();
+    }
+
+    getRelease()
       .then(release => {
         document.getElementById('version').textContent = 'Latest release ' + release.tag_name;
         const assets = release.assets || [];
