@@ -37,12 +37,40 @@
     .pick-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
     .pick { font-size: 22px; background: none; border: none; cursor: pointer; padding: 4px; border-radius: 8px; color: #fff; }
     .pick:hover { background: rgba(255,255,255,0.14); }
+
+    /* settings dropdown */
+    #settings { margin-top: 8px; width: 360px; max-height: 400px; overflow-y: auto;
+      background: rgba(12,14,26,0.96); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px; padding: 12px 14px 14px; display: none;
+      color: #c8c8e0; font-size: 12px; line-height: 1.5; }
+    #settings.open { display: block; }
+    #settings::-webkit-scrollbar { width: 8px; }
+    #settings::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+    .s-group { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+      opacity: 0.4; margin: 12px 0 6px; }
+    .s-group:first-child { margin-top: 0; }
+    .s-row { margin-bottom: 9px; }
+    .s-top { display: flex; justify-content: space-between; align-items: baseline; }
+    .s-top span:first-child { opacity: 0.85; }
+    .s-val { font-variant-numeric: tabular-nums; opacity: 0.55; font-size: 11px; }
+    .s-row input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 3px;
+      background: rgba(255,255,255,0.13); outline: none; margin-top: 3px; }
+    .s-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px;
+      border-radius: 50%; background: #7aa2ff; cursor: pointer; box-shadow: 0 0 6px rgba(122,162,255,0.5); }
+    .s-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+    .s-toggle input { width: 34px; height: 18px; -webkit-appearance: none; border-radius: 10px;
+      background: rgba(255,255,255,0.16); position: relative; cursor: pointer; transition: background 0.15s; }
+    .s-toggle input:checked { background: #5a7dff; }
+    .s-toggle input::before { content:''; position:absolute; top:2px; left:2px; width:14px; height:14px;
+      border-radius:50%; background:#fff; transition: transform 0.15s; }
+    .s-toggle input:checked::before { transform: translateX(16px); }
   </style>
 </head>
 <body>
   <div id="wrap">
     <div id="pill"></div>
     <div id="picker"></div>
+    <div id="settings"></div>
   </div>
   <script type="module" src="/src/toolbar.js"></script>
 </body>

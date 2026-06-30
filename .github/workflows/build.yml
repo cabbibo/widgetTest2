@@ -12,19 +12,21 @@ jobs:
       matrix:
         include:
           # ── macOS (Apple Silicon) — all three widgets ──────────────────────
-          - { platform: macos-latest, widget: mushroom,  args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
+          - { platform: macos-latest, widget: confetti-butt,  args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
           - { platform: macos-latest, widget: emoji,      args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
           - { platform: macos-latest, widget: magnifier,  args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
-          # ── Windows — Tassels (emoji) only; Lens & Mushroom are macOS-only ──
+          # ── Windows — Tassels (emoji) only; Lens & Confetti Butt are macOS-only ──
           - { platform: windows-latest, widget: emoji,    args: '', rust-target: '' }
 
     runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: write   # tauri-action needs this to create the GitHub Release
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - uses: dtolnay/rust-toolchain@stable
         with:

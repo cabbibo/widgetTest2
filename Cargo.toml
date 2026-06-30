@@ -3,11 +3,11 @@
 resolver = "2"
 members = [
   "widget-core",
-  "mushroom/src-tauri",
+  "confetti-butt/src-tauri",
   "emoji/src-tauri",
   "magnifier/src-tauri",
 ]
 
-# screencapturekit (used by the mushroom widget) needs this patched dependency.
+# screencapturekit (used by the confetti-butt widget) needs this patched dependency.
 [patch.crates-io]
 apple-metal = { path = "vendor/apple-metal" }

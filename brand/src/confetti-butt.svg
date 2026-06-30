@@ -1,0 +1,63 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cb-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6d5cf0"/>
+      <stop offset="1" stop-color="#3a2a8f"/>
+    </linearGradient>
+    <radialGradient id="cb-cheek" cx="0.4" cy="0.34" r="0.8">
+      <stop offset="0" stop-color="#ffd1bf"/>
+      <stop offset="0.6" stop-color="#ffb199"/>
+      <stop offset="1" stop-color="#f58e7a"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="224" fill="url(#cb-bg)"/>
+
+  <!-- confetti burst (behind + around the butt) -->
+  <g stroke-width="0">
+    <rect x="150" y="690" width="34" height="22" rx="5" fill="#ff6b81" transform="rotate(-18 167 701)"/>
+    <rect x="250" y="800" width="30" height="20" rx="5" fill="#ffd93d" transform="rotate(24 265 810)"/>
+    <rect x="788" y="700" width="34" height="22" rx="5" fill="#4fd1c5" transform="rotate(28 805 711)"/>
+    <rect x="838" y="560" width="28" height="20" rx="5" fill="#6bc6ff" transform="rotate(-20 852 570)"/>
+    <rect x="150" y="520" width="28" height="20" rx="5" fill="#a779ff" transform="rotate(16 164 530)"/>
+    <circle cx="210" cy="640" r="13" fill="#ffd93d"/>
+    <circle cx="820" cy="800" r="13" fill="#ff6b81"/>
+    <circle cx="884" cy="660" r="11" fill="#ffffff"/>
+    <circle cx="120" cy="780" r="11" fill="#4fd1c5"/>
+    <path d="M712 820 l22 8 -6 22 -20 -12 z" fill="#6bc6ff"/>
+    <path d="M300 560 l20 6 -4 20 -18 -10 z" fill="#ff9bd2"/>
+    <path d="M560 850 l22 6 -6 22 -20 -12 z" fill="#a779ff"/>
+  </g>
+
+  <!-- curly pig tail -->
+  <path d="M512 312 q70 -30 70 26 q0 50 -54 40 q-44 -8 -30 -46"
+        fill="none" stroke="#e07a64" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- the butt: two peachy cheeks -->
+  <g stroke="#d96a52" stroke-width="10">
+    <ellipse cx="404" cy="556" rx="168" ry="190" fill="url(#cb-cheek)"/>
+    <ellipse cx="620" cy="556" rx="168" ry="190" fill="url(#cb-cheek)"/>
+  </g>
+  <!-- re-fill the seam so the two cheeks read as one -->
+  <ellipse cx="512" cy="556" rx="150" ry="180" fill="url(#cb-cheek)"/>
+  <!-- center cleft -->
+  <path d="M512 392 q-26 150 0 318" fill="none" stroke="#e08066" stroke-width="14"
+        stroke-linecap="round" opacity="0.85"/>
+
+  <!-- pink peach-fuzz freckles -->
+  <g fill="#ff8f9c" opacity="0.55">
+    <circle cx="360" cy="500" r="7"/>
+    <circle cx="430" cy="560" r="6"/>
+    <circle cx="600" cy="510" r="7"/>
+    <circle cx="664" cy="566" r="6"/>
+    <circle cx="392" cy="612" r="6"/>
+    <circle cx="636" cy="620" r="6"/>
+  </g>
+
+  <!-- little confetti puffing out the bottom -->
+  <g>
+    <rect x="476" y="742" width="22" height="15" rx="4" fill="#ffd93d" transform="rotate(-22 487 749)"/>
+    <rect x="520" y="760" width="22" height="15" rx="4" fill="#4fd1c5" transform="rotate(20 531 767)"/>
+    <circle cx="512" cy="800" r="10" fill="#ff6b81"/>
+  </g>
+</svg>

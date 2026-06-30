@@ -4342,6 +4342,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "widget-confetti-butt"
+version = "0.1.0"
+dependencies = [
+ "rustfft",
+ "screencapturekit",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "widget-core",
+]
+
+[[package]]
 name = "widget-core"
 version = "0.1.0"
 dependencies = [
@@ -4365,20 +4379,6 @@ dependencies = [
 name = "widget-magnifier"
 version = "0.1.0"
 dependencies = [
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-opener",
- "widget-core",
-]
-
-[[package]]
-name = "widget-mushroom"
-version = "0.1.0"
-dependencies = [
- "rustfft",
- "screencapturekit",
  "serde",
  "serde_json",
  "tauri",
