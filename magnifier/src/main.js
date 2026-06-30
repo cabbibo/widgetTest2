@@ -187,10 +187,14 @@ const RIM = LENS_PX / 2;
     cardTitle.style.cssText = 'font-size:8px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.4;margin-bottom:4px;';
     cardTitle.textContent = 'definition';
     const cardWord = document.createElement('div');
-    cardWord.style.cssText = 'font-size:14px;font-weight:700;color:#fff;margin-bottom:3px;';
+    cardWord.style.cssText = 'font-size:14px;font-weight:700;color:#fff;margin-bottom:1px;';
+    const cardPos = document.createElement('div');
+    cardPos.style.cssText = 'font-size:9px;font-style:italic;color:#9aa0c8;margin-bottom:5px;';
+    const cardTabs = document.createElement('div');
+    cardTabs.style.cssText = 'display:none;justify-content:flex-end;flex-wrap:wrap;gap:4px;margin-bottom:6px;';
     const cardBody = document.createElement('div');
     cardBody.style.cssText = 'font-size:10.5px;color:#d4d8f0;line-height:1.4;';
-    card.append(cardTitle, cardWord, cardBody);
+    card.append(cardTitle, cardWord, cardPos, cardTabs, cardBody);
 
     const synBubbles = [];
     const histNodes = [];
@@ -219,18 +223,35 @@ const RIM = LENS_PX / 2;
       clearPool(histNodes); clearLines('hist-line');
       const list = (nodes || []).slice(0, 8);
       if (!list.length) return;
-      const x = LCX, y0 = LCY + RIM + 26;
-      const avail = (HEIGHT - 20) - y0;
+      const x = LCX, y0 = LCY + RIM + 34;
+      const avail = (HEIGHT - 16) - y0;
       const step = Math.min(46, Math.max(32, avail / list.length));
-      line(x, LCY + RIM + 2, x, y0 + (list.length - 1) * step, 'rgba(150,170,255,0.4)', 1.4, 'hist-line');
+      const lastY = y0 + (list.length - 1) * step;
+      const padT = 18, padB = 16, bgL = x - 22, bgR = WIDTH - 8;
+
+      // Readable background panel behind the whole history chain
+      const bg = el('left:' + bgL + 'px;top:' + (y0 - padT) + 'px;width:' + (bgR - bgL) + 'px;' +
+        'height:' + ((lastY - y0) + padT + padB) + 'px;border-radius:12px;background:rgba(12,14,30,0.82);' +
+        'box-shadow:0 6px 18px rgba(0,0,0,0.45);', 2);
+      histNodes.push(bg);
+      const cap = el('left:' + (x - 12) + 'px;top:' + (y0 - padT + 5) + 'px;font-size:8px;letter-spacing:1.5px;' +
+        'text-transform:uppercase;color:#8fa0e0;opacity:0.6;', 3);
+      cap.textContent = 'history of the word';
+      histNodes.push(cap);
+      // Spine (DOM, above the panel)
+      const spine = el('left:' + (x - 1) + 'px;top:' + (y0 - 4) + 'px;width:2px;height:' + ((lastY - y0) + 8) + 'px;' +
+        'background:rgba(150,170,255,0.45);border-radius:1px;', 5);
+      histNodes.push(spine);
+
+      const maxw = bgR - (x + 12) - 12;
       list.forEach((nd, i) => {
         const y = y0 + i * step;
         const dot = el('left:' + x + 'px;top:' + y + 'px;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;' +
            'background:radial-gradient(circle at 35% 35%,#cdd6ff,#5566cc);box-shadow:0 0 7px rgba(120,150,255,0.6);', 6);
         histNodes.push(dot);
         const lbl = el(
-          'left:' + (x + 12) + 'px;top:' + y + 'px;transform:translateY(-50%);max-width:300px;white-space:nowrap;overflow:hidden;' +
-          'text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,0.85);', 6);
+          'left:' + (x + 12) + 'px;top:' + y + 'px;transform:translateY(-50%);max-width:' + maxw + 'px;white-space:nowrap;' +
+          'overflow:hidden;text-overflow:ellipsis;', 6);
         lbl.innerHTML =
           '<span style="font-size:8px;letter-spacing:.5px;text-transform:uppercase;color:#8fa0e0">' + esc(nd.label) + '</span>' +
           (nd.detail ? ' <span style="font-size:10.5px;color:#e6e9ff">' + esc(nd.detail) + '</span>' : '');
@@ -289,12 +310,59 @@ const RIM = LENS_PX / 2;
         .trim();
     }
 
+    // Split a definition into its numbered senses ("1 … 2 … 3 …"). The text before
+    // the first number is the part of speech. One sense → no tabs.
+    function parseSenses(def) {
+      if (!def) return { pos: '', senses: [] };
+      const marks = [];
+      const re = /(^|[^0-9])([1-9])\s/g;
+      let m;
+      while ((m = re.exec(def))) {
+        const numIdx = m.index + m[1].length;
+        marks.push({ numIdx, after: numIdx + 2, num: m[2] });
+        re.lastIndex = numIdx + 2;
+      }
+      if (marks.length === 0) return { pos: '', senses: [{ num: '', text: def.trim() }] };
+      const pos = def.slice(0, marks[0].numIdx).trim();
+      const senses = marks.map((mk, k) => {
+        const end = k + 1 < marks.length ? marks[k + 1].numIdx : def.length;
+        return { num: mk.num, text: def.slice(mk.after, end).trim() };
+      });
+      return { pos, senses };
+    }
+
     function showLookup(d) {
       card.style.display = 'block';
       cardWord.textContent = d.word || '';
       const def = cleanDefinition(d.definition);
-      cardBody.textContent = def || 'no definition';
-      cardBody.style.color = def ? '#d4d8f0' : '#8890b0';
+      const { pos, senses } = parseSenses(def);
+      cardPos.textContent = pos;
+
+      const showSense = (i) => {
+        cardBody.textContent = senses[i] ? senses[i].text : (def || 'no definition');
+        cardBody.style.color = senses.length ? '#d4d8f0' : '#8890b0';
+        [...cardTabs.children].forEach((t, j) => {
+          t.style.background = j === i ? 'rgba(120,150,255,0.32)' : 'rgba(40,44,72,0.7)';
+          t.style.color = j === i ? '#fff' : '#9aa0c8';
+        });
+      };
+
+      cardTabs.innerHTML = '';
+      if (senses.length > 1) {
+        cardTabs.style.display = 'flex';
+        senses.forEach((s, i) => {
+          const t = document.createElement('span');
+          t.textContent = s.num || (i + 1);
+          t.style.cssText = 'min-width:16px;text-align:center;padding:2px 7px;border-radius:8px;font-size:10px;' +
+            'font-weight:600;cursor:pointer;user-select:none;';
+          t.addEventListener('click', () => showSense(i));
+          cardTabs.appendChild(t);
+        });
+      } else {
+        cardTabs.style.display = 'none';
+      }
+      showSense(0);   // first definition by default
+
       renderSynonyms(d.synonyms);
       renderHistory(parseEtymology(d.etymology));
     }
@@ -307,7 +375,7 @@ const RIM = LENS_PX / 2;
     // ── Two decoupled loops: a fast magnify loop, a separate OCR/lookup loop ─────
     // Magnification must never wait on OCR (the slow part), so they run apart.
     let mBusy = false, oBusy = false, lastKey = '', moveSeq = 0, lastOcrSeq = -1;
-    let lastOcr = 0, lastLookup = '', focusBox = null, curCx = LCX, curCy = LCY;
+    let lastOcr = 0, lastLookup = '', focusBox = null, curCx = LCX, curCy = LCY, lastMoveAt = 0;
 
     async function magnifyLoop() {
       if (mBusy) { setTimeout(magnifyLoop, 8); return; }
@@ -317,7 +385,7 @@ const RIM = LENS_PX / 2;
         const sf = window.devicePixelRatio;
         curCx = pos.x / sf + LCX; curCy = pos.y / sf + LCY;
         const key = (curCx | 0) + ',' + (curCy | 0);
-        if (key !== lastKey) { lastKey = key; moveSeq++; }
+        if (key !== lastKey) { lastKey = key; moveSeq++; lastMoveAt = performance.now(); focusBox = null; }
         const buf = await invoke('capture_region_raw', { cx: curCx, cy: curCy, region: CAP, outSize: OUT });
         const src = new Uint8ClampedArray(buf);
         if (src.length === N * 4) { renderGlass(src); drawHighlight(focusBox); }
@@ -330,8 +398,12 @@ const RIM = LENS_PX / 2;
       if (oBusy) { setTimeout(ocrLoop, 40); return; }
       oBusy = true;
       try {
-        if (moveSeq !== lastOcrSeq || performance.now() - lastOcr > 700) {
-          lastOcrSeq = moveSeq; lastOcr = performance.now();
+        // Only OCR once the lens has been still briefly (so a drag doesn't fire OCR
+        // every frame and fight the magnify for the window server), or periodically.
+        const now = performance.now();
+        const settled = now - lastMoveAt > 130;
+        if ((moveSeq !== lastOcrSeq && settled) || now - lastOcr > 900) {
+          lastOcrSeq = moveSeq; lastOcr = now;
           const json = await invoke('ocr_words', { title: TITLE, cx: curCx, cy: curCy, region: OCR_REG, outPx: OCR_OUT });
           let words = []; try { words = JSON.parse(json); } catch {}
           let best = null, bestPx = Infinity;
@@ -385,6 +457,10 @@ const RIM = LENS_PX / 2;
         if (!over) {
           const sx = curCx + U * (RIM * 0.72), sy = curCy + U * (RIM * 0.72);
           over = distToSeg(mx, my, sx, sy, sx + U * HANDLE_LEN, sy + U * HANDLE_LEN) <= 15; // handle
+        }
+        if (!over && card.style.display !== 'none') {                                       // definition tabs
+          const cr = card.getBoundingClientRect(), ox = curCx - LCX, oy = curCy - LCY;
+          if (mx >= ox + cr.left && mx <= ox + cr.right && my >= oy + cr.top && my <= oy + cr.bottom) over = true;
         }
         // while the permission popup is up, keep the window clickable
         const want = window.__permOverlayActive ? false : !(over || dragging);

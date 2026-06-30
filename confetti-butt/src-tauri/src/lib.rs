@@ -202,6 +202,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            // Register with the widget manager's dock so it can launch/quit us.
+            widget_core::dock::register("com.widget.confettibutt", "Confetti Butt", "🎉");
             #[cfg(target_os = "macos")]
             {
                 mac_audio::start(app.handle().clone());

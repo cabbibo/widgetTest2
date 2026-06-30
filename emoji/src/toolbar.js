@@ -1,7 +1,7 @@
 // Always-visible quick-control toolbar: ✕ | emojis (click to change/remove) | ＋ | sound.
 // Edits the active emoji set + sound toggle live (broadcasts 'apply-settings') and persists.
 
-import { defaults, applyJSON, SCHEMA, GROUPS } from './settings.js';
+import { defaults, applyJSON, SCHEMA, GROUPS, PREFABS } from './settings.js';
 
 const { invoke } = window.__TAURI__.core;
 const { emit, listen } = window.__TAURI__.event;
@@ -77,9 +77,18 @@ const pushLive = () => emit('apply-settings', { ...S });
 const fmt = (v) => (Math.abs(v) >= 100 || Number.isInteger(v)) ? String(v) : v.toFixed(2);
 let editingIndex = -1;   // which pill emoji's picker is open (replace mode)
 const setH = (h) => appWindow.setSize(new LogicalSize(W, h));
+// Size the window to the pill's actual height (it wraps to extra rows when full).
+function fitWindow() {
+  if (picker.classList.contains('open') || settingsPanel.classList.contains('open')) return;
+  requestAnimationFrame(() => {
+    if (picker.classList.contains('open') || settingsPanel.classList.contains('open')) return;
+    const h = Math.ceil(pill.getBoundingClientRect().height) + 16; // + #wrap padding
+    setH(Math.max(64, h));
+  });
+}
 const collapse = () => {
   picker.classList.remove('open'); settingsPanel.classList.remove('open');
-  editingIndex = -1; renderPill(); setH(82);
+  editingIndex = -1; renderPill();   // renderPill → fitWindow sizes to the pill
 };
 const expand = () => setH(380);
 
@@ -89,20 +98,24 @@ const sep    = () => { const s = document.createElement('div'); s.className = 's
 
 function renderPill() {
   pill.innerHTML = '';
+  // left: close
   const x = mkBtn('✕', 'close'); x.title = 'Close widget'; x.onclick = () => invoke('quit_app'); pill.appendChild(x);
-  pill.appendChild(sep());
+  // middle: the emoji set — small + wraps to multiple rows so the pill never gets too wide
+  const wrap = document.createElement('div'); wrap.className = 'emoji-wrap';
   S.emojis.forEach((em, i) => {
-    const b = mkBtn(em, i === editingIndex ? 'editing' : ''); b.title = 'Change or remove';
-    b.onclick = () => openPicker({ type: 'replace', index: i }); pill.appendChild(b);
+    const b = mkBtn(em, 'em' + (i === editingIndex ? ' editing' : '')); b.title = 'Change or remove';
+    b.onclick = () => openPicker({ type: 'replace', index: i }); wrap.appendChild(b);
   });
-  const add = mkBtn('＋', 'ico'); add.title = 'Add emoji'; add.onclick = () => openPicker({ type: 'add' }); pill.appendChild(add);
-  pill.appendChild(sep());
+  const add = mkBtn('＋', 'ico add'); add.title = 'Add emoji'; add.onclick = () => openPicker({ type: 'add' }); wrap.appendChild(add);
+  pill.appendChild(wrap);
+  // right: sound + settings
   const snd = mkBtn(S.soundEnabled ? '🔊' : '🔇', 'ico'); snd.title = 'Toggle sound';
   snd.onclick = () => { S.soundEnabled = !S.soundEnabled; persist(); pushLive(); renderPill(); };
   pill.appendChild(snd);
   const gear = mkBtn('⚙', 'ico'); gear.title = 'Settings';
   gear.onclick = () => { settingsPanel.classList.contains('open') ? collapse() : openSettings(); };
   pill.appendChild(gear);
+  fitWindow();
 }
 
 // Settings dropdown — all sliders/toggles, built from the shared SCHEMA.
@@ -156,6 +169,17 @@ function openPicker(mode) {
   editingIndex = mode.type === 'replace' ? mode.index : -1;
   renderPill();           // highlight the emoji being edited
   picker.innerHTML = '';
+
+  // presets — swap the whole set to a curated pack
+  const presets = document.createElement('div'); presets.className = 'pick-presets';
+  const plabel = document.createElement('span'); plabel.className = 'pick-plabel'; plabel.textContent = 'Packs:';
+  presets.appendChild(plabel);
+  for (const [name, list] of Object.entries(PREFABS)) {
+    const p = document.createElement('button'); p.className = 'preset'; p.textContent = name;
+    p.onclick = () => { S.emojis = list.slice(0, 24); persist(); pushLive(); renderPill(); collapse(); };
+    presets.appendChild(p);
+  }
+  picker.appendChild(presets);
 
   // search box (type a word to filter, or paste an emoji to use directly)
   const inputRow = document.createElement('div'); inputRow.className = 'pick-input';
@@ -219,12 +243,19 @@ window.addEventListener('blur', () => { if (anyOpen()) collapse(); });
 // drag the toolbar by the pill background (not the buttons)
 pill.addEventListener('pointerdown', (e) => { if (e.target === pill) appWindow.startDragging(); });
 
-// stay in sync if Preferences changes things
+// stay in sync if settings change elsewhere
 listen('apply-settings', (e) => {
   if (!e.payload) return;
   applyJSON(S, e.payload);
   if (S.showToolbar) appWindow.show(); else appWindow.hide();
   renderPill();
+});
+
+// tray → "Show / Hide toolbar"
+listen('toggle-toolbar', () => {
+  S.showToolbar = !S.showToolbar;
+  persist();
+  if (S.showToolbar) { appWindow.show(); appWindow.setFocus(); } else { collapse(); appWindow.hide(); }
 });
 
 renderPill();

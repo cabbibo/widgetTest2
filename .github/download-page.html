@@ -76,6 +76,17 @@
 
     footer { text-align: center; color: var(--faint); font-size: 0.78rem; margin-top: 64px; line-height: 1.7; }
     footer a { color: var(--muted); }
+    footer .open-note {
+      max-width: 560px; margin: 0 auto 18px; padding: 14px 18px;
+      border: 1px solid var(--line-soft); border-radius: 14px; background: var(--card);
+      color: var(--muted); line-height: 1.65;
+    }
+    footer .open-note b { color: var(--text); }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.72rem;
+      background: #000; color: #c9c2e6; padding: 2px 7px; border-radius: 6px;
+      border: 1px solid var(--line); white-space: nowrap;
+    }
     #version { color: var(--faint); }
   </style>
 </head>
@@ -89,8 +100,14 @@
   <main class="grid" id="grid"></main>
 
   <footer>
+    <p class="open-note">
+      <b>Opening on macOS.</b> These apps aren’t notarized by Apple, so the first launch needs one extra step:
+      <b>right-click</b> the app (or Control-click) → <b>Open</b> → <b>Open</b>.<br>
+      If macOS still says the app is <b>“damaged”</b>, it’s just the download-quarantine flag — clear it in Terminal:<br>
+      <code>xattr -dr com.apple.quarantine /Applications/Lens.app</code>
+    </p>
     <p>macOS builds are Apple&nbsp;Silicon · Windows builds are NSIS installers.<br>
-    First launch: macOS may need <i>System&nbsp;Settings → Privacy</i> permissions; Windows SmartScreen → “More&nbsp;info” → “Run&nbsp;anyway”.</p>
+    First launch may also prompt for macOS <i>Privacy</i> permissions (screen recording, etc.); Windows SmartScreen → “More&nbsp;info” → “Run&nbsp;anyway”.</p>
     <p id="version"></p>
   </footer>
 
@@ -116,6 +133,12 @@
         tagline: 'a magnifier that reads',
         desc: 'A floating magnifying glass that enlarges whatever’s behind it, then reads the word under it and shows its definition, synonyms, and word history. Powered by on-device OCR + the macOS dictionary.',
         win: false,
+      },
+      {
+        product: 'Weather', icon: 'icons/weather.png',
+        tagline: 'your sky, at a glance',
+        desc: 'A tiny frosted card that finds where you are and shows the current conditions — a weather glyph, the temperature, and your city. No setup, no API keys; refreshes itself every few minutes.',
+        win: true,
       },
     ];
 

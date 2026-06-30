@@ -8,9 +8,8 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       input: {
-        main:     resolve(__dirname, 'index.html'),
-        settings: resolve(__dirname, 'settings.html'),
-        toolbar:  resolve(__dirname, 'toolbar.html'),
+        main:    resolve(__dirname, 'index.html'),
+        toolbar: resolve(__dirname, 'toolbar.html'),
       },
     },
   },

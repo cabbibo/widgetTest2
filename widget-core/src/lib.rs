@@ -1,3 +1,5 @@
+pub mod dock;
+
 #[derive(serde::Serialize, Clone)]
 pub struct WinRect {
     x: f64, y: f64, w: f64, h: f64,
@@ -189,6 +191,26 @@ pub fn open_permission_settings(permission: String) {
 use std::sync::OnceLock;
 static OCR_READY: OnceLock<bool> = OnceLock::new();
 
+// Compile a Swift helper to /tmp/<name>, shared across widgets. Skips if it already
+// exists, and compiles via a per-pid source + temp binary then renames into place,
+// so two widgets building at once never touch the same file ("input modified during
+// build"). Returns whether the shared binary exists afterward.
+fn ensure_swift_binary(name: &str, script: &str) -> bool {
+    let bin = format!("/tmp/{name}");
+    if std::path::Path::new(&bin).exists() { return true; }
+    let pid = std::process::id();
+    let src = format!("/tmp/{name}_{pid}.swift");
+    let tmp = format!("/tmp/{name}_{pid}.build");
+    if std::fs::write(&src, script).is_err() { return false; }
+    let ok = std::process::Command::new("/usr/bin/swiftc")
+        .args([src.as_str(), "-o", tmp.as_str()])
+        .status().map(|s| s.success()).unwrap_or(false);
+    let _ = std::fs::remove_file(&src);
+    if ok { let _ = std::fs::rename(&tmp, &bin); }
+    else { let _ = std::fs::remove_file(&tmp); }
+    std::path::Path::new(&bin).exists()
+}
+
 pub fn ensure_ocr_binary() -> bool {
     *OCR_READY.get_or_init(|| {
         let script = r#"import Foundation
@@ -203,12 +225,7 @@ try? handler.perform([req])
 let text = (req.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
 print(text)
 "#;
-        if std::fs::write("/tmp/widget_ocr.swift", script).is_err() { return false; }
-        std::process::Command::new("/usr/bin/swiftc")
-            .args(["/tmp/widget_ocr.swift", "-o", "/tmp/widget_ocr"])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
+        ensure_swift_binary("widget_ocr", script)
     })
 }
 
@@ -342,9 +359,10 @@ pub fn ocr_region(_title: String, cx: f64, cy: f64, region: u32) -> String {
     let png = match rgba_to_png(&rgba, region, region) {
         Some(p) => p, None => return String::new(),
     };
-    if std::fs::write("/tmp/widget_ocr_in.png", &png).is_err() { return String::new(); }
+    let in_png = format!("/tmp/widget_ocr_{}_in.png", std::process::id());
+    if std::fs::write(&in_png, &png).is_err() { return String::new(); }
     std::process::Command::new("/tmp/widget_ocr")
-        .arg("/tmp/widget_ocr_in.png")
+        .arg(&in_png)
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
         .unwrap_or_default()
@@ -382,12 +400,7 @@ for obs in (req.results ?? []) {
 }
 if let d = try? JSONSerialization.data(withJSONObject: words), let str = String(data: d, encoding: .utf8) { print(str) } else { print("[]") }
 "#;
-        if std::fs::write("/tmp/widget_ocr_words.swift", script).is_err() { return false; }
-        std::process::Command::new("/usr/bin/swiftc")
-            .args(["/tmp/widget_ocr_words.swift", "-o", "/tmp/widget_ocr_words"])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
+        ensure_swift_binary("widget_ocr_words", script)
     })
 }
 
@@ -400,9 +413,10 @@ pub fn ocr_words_region(_title: String, cx: f64, cy: f64, region: u32, out_px: u
     let png = match rgba_to_png(&rgba, out_px, out_px) {
         Some(p) => p, None => return "[]".into(),
     };
-    if std::fs::write("/tmp/widget_ocr_words_in.png", &png).is_err() { return "[]".into(); }
+    let in_png = format!("/tmp/widget_ocr_words_{}_in.png", std::process::id());
+    if std::fs::write(&in_png, &png).is_err() { return "[]".into(); }
     std::process::Command::new("/tmp/widget_ocr_words")
-        .arg("/tmp/widget_ocr_words_in.png")
+        .arg(&in_png)
         .output()
         .ok()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
@@ -463,12 +477,7 @@ for tok in t1.components(separatedBy: CharacterSet(charactersIn: ",;")) {
 let out: [String: Any] = ["word": word, "definition": defn, "synonyms": syns, "etymology": etym]
 if let d = try? JSONSerialization.data(withJSONObject: out), let str = String(data: d, encoding: .utf8) { print(str) } else { print("{}") }
 "#;
-        if std::fs::write("/tmp/widget_lookup.swift", script).is_err() { return false; }
-        std::process::Command::new("/usr/bin/swiftc")
-            .args(["/tmp/widget_lookup.swift", "-o", "/tmp/widget_lookup"])
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false)
+        ensure_swift_binary("widget_lookup", script)
     })
 }
 

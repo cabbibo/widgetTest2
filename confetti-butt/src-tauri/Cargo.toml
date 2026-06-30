@@ -5,7 +5,7 @@ description = "Confetti Butt widget"
 edition = "2021"
 
 [lib]
-name = "app_lib"
+name = "confetti_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

@@ -15,8 +15,10 @@ jobs:
           - { platform: macos-latest, widget: confetti-butt,  args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
           - { platform: macos-latest, widget: emoji,      args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
           - { platform: macos-latest, widget: magnifier,  args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
-          # ── Windows — Tassels (emoji) only; Lens & Confetti Butt are macOS-only ──
+          - { platform: macos-latest, widget: weather,    args: '--target aarch64-apple-darwin', rust-target: aarch64-apple-darwin }
+          # ── Windows — Tassels (emoji) + Weather; Lens & Confetti Butt are macOS-only ──
           - { platform: windows-latest, widget: emoji,    args: '', rust-target: '' }
+          - { platform: windows-latest, widget: weather,  args: '', rust-target: '' }
 
     runs-on: ${{ matrix.platform }}
     permissions:

@@ -4361,6 +4361,7 @@ version = "0.1.0"
 dependencies = [
  "png 0.17.16",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -4377,6 +4378,30 @@ dependencies = [
 
 [[package]]
 name = "widget-magnifier"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "widget-core",
+]
+
+[[package]]
+name = "widget-manager"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "widget-core",
+]
+
+[[package]]
+name = "widget-weather"
 version = "0.1.0"
 dependencies = [
  "serde",

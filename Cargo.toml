@@ -6,6 +6,8 @@ members = [
   "confetti-butt/src-tauri",
   "emoji/src-tauri",
   "magnifier/src-tauri",
+  "weather/src-tauri",
+  "manager/src-tauri",
 ]
 
 # screencapturekit (used by the confetti-butt widget) needs this patched dependency.

@@ -4,7 +4,7 @@
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    Manager,
+    Emitter, Manager,
 };
 
 #[tauri::command]
@@ -33,23 +33,21 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // Tray menu: widget header, Preferences, Quit.
-            let header  = MenuItem::with_id(app, "header", "✨  Tassels", false, None::<&str>)?;
-            let prefs_i = MenuItem::with_id(app, "prefs", "Preferences…", true, None::<&str>)?;
-            let quit_i  = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let sepa    = PredefinedMenuItem::separator(app)?;
-            let menu = Menu::with_items(app, &[&header, &sepa, &prefs_i, &quit_i])?;
+            // Register with the widget manager's dock so it can launch/quit us.
+            widget_core::dock::register("com.widget.emoji", "Tassels", "✨");
+            // Tray menu: widget header, Show/Hide toolbar, Quit.
+            let header   = MenuItem::with_id(app, "header", "✨  Tassels", false, None::<&str>)?;
+            let toggle_i = MenuItem::with_id(app, "toggletb", "Show / Hide toolbar", true, None::<&str>)?;
+            let quit_i   = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let sepa     = PredefinedMenuItem::separator(app)?;
+            let menu = Menu::with_items(app, &[&header, &sepa, &toggle_i, &quit_i])?;
 
             let mut tray = TrayIconBuilder::new()
                 .menu(&menu)
                 .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "quit" => std::process::exit(0),
-                    "prefs" => {
-                        if let Some(w) = app.get_webview_window("settings") {
-                            let _ = w.show(); let _ = w.set_focus(); let _ = w.center();
-                        }
-                    }
+                    "toggletb" => { let _ = app.emit("toggle-toolbar", ()); }
                     _ => {}
                 });
             if let Some(icon) = app.default_window_icon() {

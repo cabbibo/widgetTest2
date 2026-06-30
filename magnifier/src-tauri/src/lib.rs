@@ -50,6 +50,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|_app| {
+            // Register with the widget manager's dock so it can launch/quit us.
+            widget_core::dock::register("com.widget.magnifier", "Lens", "🔍");
             // Pre-compile the Vision OCR + dictionary binaries so the first lookup is fast.
             #[cfg(target_os = "macos")]
             std::thread::spawn(|| {

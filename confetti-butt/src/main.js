@@ -307,17 +307,15 @@ const fleshFrag = `
   uniform vec3  uSSSColor;   // shadow / rim tint
   uniform float uFlush;      // 0..1 audio-driven flush / glow boost
   uniform float uTime;
+  uniform vec3  uLight;      // key-light direction in view space (driven by the cursor)
   varying vec3 vNormal;
   varying vec3 vViewPos;
   varying vec3 vLocalPos;
 
-  // light directions in view space
-  const vec3 L0 = vec3(0.40, 0.65, 0.65);   // key (upper right, toward viewer)
-
   void main() {
     vec3 N = normalize(vNormal);
     vec3 V = normalize(-vViewPos);
-    vec3 k = normalize(L0);
+    vec3 k = normalize(uLight);
 
     // ── Toon ramp: quantize the diffuse into flat cel bands ──────────────────
     float ndl  = dot(N, k) * 0.5 + 0.5;                 // 0..1
@@ -325,7 +323,7 @@ const fleshFrag = `
     float hi   = smoothstep(0.66, 0.70, ndl);           // mid → light
     float band = lo * 0.5 + hi * 0.5;                   // 3 flat levels
 
-    vec3 shadowC = uColor * vec3(0.80, 0.70, 0.74);     // soft cool shadow
+    vec3 shadowC = uColor * vec3(0.88, 0.82, 0.85);     // light, barely-cool shadow
     vec3 col     = mix(shadowC, uColor, band);
 
     // soft toony rim light along the silhouette
@@ -343,10 +341,10 @@ const fleshFrag = `
 `;
 
 // ── Scene materials ──────────────────────────────────────────────────────────
-// One material per cheek so each can lean its own way (uSide). Less peachy now:
-// a cooler, rosier skin instead of the orange-ish peach.
-const SKIN_COLOR = 0xceb0bd;   // muted dusty rose
-const SSS_COLOR  = 0xb24a58;   // deep cool red
+// One material per cheek so each can lean its own way (uSide). Light, pink,
+// pig-butt skin.
+const SKIN_COLOR = 0xf6c2d6;   // light bubblegum pink
+const SSS_COLOR  = 0xe07f9a;   // soft rose rim
 function makeFleshMat(side) {
   return new THREE.ShaderMaterial({
     vertexShader:   fleshVert,
@@ -355,6 +353,7 @@ function makeFleshMat(side) {
     uniforms: {
       uColor:    { value: new THREE.Color(SKIN_COLOR) },
       uSSSColor: { value: new THREE.Color(SSS_COLOR)  },
+      uLight:    { value: new THREE.Vector3(0.4, 0.65, 0.65).normalize() },
       uFlush:    { value: 0.0 },
       uTime:     { value: 0.0 },
       uSpread:   { value: 0.0 },
@@ -452,21 +451,26 @@ async function captureBg() {
 // ── Butt: two fleshy cheeks that spread apart as you type ─────────────────────
 // Crack faces straight up so the confetti words fart vertically out of the seam.
 const garden = new THREE.Group();
-garden.position.set(0.8, -0.5, 0);
+// Locked to the base of the screen. BASE_Y sits the cheeks' equator just below the
+// bottom edge so the rounded underside is cropped off-screen — only the mounds show.
+const _halfH = Math.tan((camera.fov * Math.PI / 180) / 2) * camera.position.z;
+const BASE_Y = -_halfH + 0.07;
+// Start in the lower-RIGHT corner: anchor to the right edge (half-width = halfH·aspect)
+// minus a margin for the butt's own width, so it lands in the corner on any aspect.
+const START_X = _halfH * camera.aspect - 0.7;
+garden.position.set(START_X, BASE_Y, 0);
+// The butt faces straight up; confetti fires straight up.
+const BARREL = new THREE.Vector3(0, 1, 0);
 scene.add(garden);
 
-// Status panel — created in Tauri IIFE, position updated in render loop
-let statusPanel = null;
-const _spTmp = new THREE.Vector3();
+// Emission point in butt-local space — up above the tail, where the fart erupts.
+const FOUNTAIN_POS = new THREE.Vector3(0, 0.30, 0.06);
 
-// Emission point in butt-local space — top of the seam, where the fart erupts.
-const FOUNTAIN_POS = new THREE.Vector3(0, 0.12, 0.04);
-
-// Two top hemispheres (domes) = just the upper mounds of the cheeks.
-// thetaLength = PI/2 keeps the top half only; flat cut faces down.
+// Cheek domes — a bit MORE than a top hemisphere (thetaLength > π/2) so the
+// underside curves back inward for a soft rounded base instead of a hard flat cut.
 const CHEEK_R  = 0.34;
 const BASE_GAP = 0.15;                 // resting half-distance between the cheeks
-const cheekGeo = new THREE.SphereGeometry(CHEEK_R, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2);
+const cheekGeo = new THREE.SphereGeometry(CHEEK_R, 48, 32, 0, Math.PI * 2, 0, Math.PI * 0.62);
 
 const leftCheek  = new THREE.Mesh(cheekGeo, leftMat);
 const rightCheek = new THREE.Mesh(cheekGeo, rightMat);
@@ -487,20 +491,29 @@ let buttSpread = 0, buttSpreadTarget = 0;
 // the butt. A spring chain pulls the tail back to this curl, while verlet inertia
 // + segment constraints let it whip and jiggle when the butt moves or farts.
 const tailMat = makeFleshMat(0);          // uSide 0 → no cheek shear, just toon skin
+tailMat.side = THREE.DoubleSide;          // tapered tube — show both sides
 allCrystalMats.push(tailMat);
 
-const TAIL_N     = 16;
-const TAIL_TURNS = 2.3;
-const TAIL_R0    = 0.16;
-const TAIL_ANCHOR = new THREE.Vector3(0, 0.22, -0.12);   // upper-back of the butt
+const TAIL_N     = 26;
+const TAIL_TURNS = 3.8;     // tighter corkscrew
+const TAIL_R0    = 0.13;
+const TAIL_ADV   = 0.30;    // length along the corkscrew's advance axis
+const TAIL_TUBE  = 0.042;   // base tube radius (stays full, then points near the end)
+const TAIL_TILT  = -0.95;   // tilt the corkscrew up (more upward than straight at the camera)
+const TAIL_ANCHOR = new THREE.Vector3(0.15, 0.20, 0.04);  // off to the side, clear of the butthole
 const tailRest = [];
 {
   const raw = [];
+  const axisX = new THREE.Vector3(1, 0, 0);
   for (let i = 0; i < TAIL_N; i++) {
     const t   = i / (TAIL_N - 1);
     const ang = t * TAIL_TURNS * Math.PI * 2;
-    const r   = TAIL_R0 * (1 - 0.62 * t);              // tightens toward the tip
-    raw.push(new THREE.Vector3(Math.cos(ang) * r, Math.sin(ang) * r + t * 0.12, 0));
+    const r   = TAIL_R0 * (1 - 0.5 * t);               // coil tightens toward the tip
+    // corkscrew coiling around its advance axis, then tilted up so it points more
+    // upward (and to the side) rather than straight at the camera
+    const p = new THREE.Vector3(Math.cos(ang) * r, -Math.sin(ang) * r, t * TAIL_ADV);
+    p.applyAxisAngle(axisX, TAIL_TILT);
+    raw.push(p);
   }
   const shift = TAIL_ANCHOR.clone().sub(raw[0]);        // move base curl to anchor
   for (const p of raw) tailRest.push(p.add(shift));
@@ -545,8 +558,35 @@ function updateTail() {
 }
 
 function buildTailMesh() {
-  const curve = new THREE.CatmullRomCurve3(tailNodes.map(n => n.pos));
-  const geo   = new THREE.TubeGeometry(curve, 48, 0.03, 10, false);
+  const curve  = new THREE.CatmullRomCurve3(tailNodes.map(n => n.pos));
+  const SEG = 64, RING = 12;
+  const pts    = curve.getSpacedPoints(SEG);
+  const frames = curve.computeFrenetFrames(SEG, false);
+  const pos = new Float32Array((SEG + 1) * (RING + 1) * 3);
+  const nor = new Float32Array((SEG + 1) * (RING + 1) * 3);
+  let p = 0;
+  for (let i = 0; i <= SEG; i++) {
+    const t = i / SEG;
+    // stay full thickness, then narrow to a sharp point only near the very end
+    const radius = TAIL_TUBE * (1 - THREE.MathUtils.smoothstep(t, 0.8, 1.0));
+    const P = pts[i], N = frames.normals[i], B = frames.binormals[i];
+    for (let j = 0; j <= RING; j++) {
+      const a = j / RING * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+      const nx = c * N.x + s * B.x, ny = c * N.y + s * B.y, nz = c * N.z + s * B.z;
+      pos[p] = P.x + radius * nx; nor[p++] = nx;
+      pos[p] = P.y + radius * ny; nor[p++] = ny;
+      pos[p] = P.z + radius * nz; nor[p++] = nz;
+    }
+  }
+  const idx = [];
+  for (let i = 0; i < SEG; i++) for (let j = 0; j < RING; j++) {
+    const a = i * (RING + 1) + j, b = a + RING + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('normal',   new THREE.BufferAttribute(nor, 3));
+  geo.setIndex(idx);
   if (tailMesh) { garden.remove(tailMesh); tailMesh.geometry.dispose(); }
   tailMesh = new THREE.Mesh(geo, tailMat);
   garden.add(tailMesh);
@@ -556,12 +596,12 @@ buildTailMesh();
 // ── Pink peach-fuzz hairs (tiny verlet strands all over the cheeks) ───────────
 // Each hair is a 4-node chain rooted on a cheek surface, standing along the
 // surface normal, with gravity sag + damping so they jiggle. Drawn as thin lines.
-const HAIR_COUNT = 300;
+const HAIR_COUNT = 620;
 const HSEG  = 3;                 // segments per hair → 4 nodes
 const HNODE = HSEG + 1;
-const HAIR_LEN = 0.075;
+const HAIR_LEN = 0.038;
 const hseg = HAIR_LEN / HSEG;
-const HAIR_GRAV = -0.0011, HAIR_DAMP = 0.84, HAIR_STIFF = 0.18;
+const HAIR_GRAV = -0.0011, HAIR_DAMP = 0.86, HAIR_BEND = 0.16;
 const CS = [0.92 * CHEEK_R, 1.15 * CHEEK_R, 0.82 * CHEEK_R];   // cheek ellipsoid radii
 const hairs = [];
 
@@ -571,14 +611,16 @@ function genHairs(offsetX, count) {
     const cosT = Math.random();                       // top hemisphere
     const sinT = Math.sqrt(1 - cosT * cosT);
     const dir  = new THREE.Vector3(sinT * Math.cos(phi), cosT, sinT * Math.sin(phi));
-    const root = new THREE.Vector3(dir.x * CS[0] + offsetX, dir.y * CS[1], dir.z * CS[2]);
+    const base = new THREE.Vector3(dir.x * CS[0] + offsetX, dir.y * CS[1], dir.z * CS[2]);
     const nrm  = new THREE.Vector3(dir.x / 0.92, dir.y / 1.15, dir.z / 0.82).normalize();
     const nodes = [];
     for (let n = 0; n < HNODE; n++) {
-      const p = root.clone().addScaledVector(nrm, hseg * n);
+      const p = base.clone().addScaledVector(nrm, hseg * n);
       nodes.push({ pos: p.clone(), prev: p.clone() });
     }
-    hairs.push({ root, nrm, nodes });
+    // base = undeformed root; root = its live position once the cheek shear is applied.
+    // side/dy let us replay the exact vertex-shader shear (pos.x += side*spread*h²) on the CPU.
+    hairs.push({ base, root: base.clone(), nrm, side: offsetX < 0 ? -1 : 1, dy: dir.y, nodes });
   }
 }
 genHairs(-BASE_GAP, HAIR_COUNT >> 1);
@@ -592,7 +634,7 @@ hairGeo.setAttribute('position', new THREE.BufferAttribute(hairPos, 3).setUsage(
 hairGeo.setAttribute('color',    new THREE.BufferAttribute(hairCol, 3));
 // static root→tip pink gradient
 {
-  const rootC = [0.95, 0.40, 0.68], tipC = [1.0, 0.82, 0.93];
+  const rootC = [1.0, 0.58, 0.80], tipC = [1.0, 0.90, 0.96];
   let o = 0;
   for (let h = 0; h < HAIR_COUNT; h++) {
     for (let s = 0; s < HSEG; s++) {
@@ -622,6 +664,10 @@ function hairKick(strength) {
 function updateHairs(t) {
   const wind = Math.sin(t * 1.3) * 0.00035;        // gentle breeze
   for (const h of hairs) {
+    // Move the root with the live cheek surface: replay the vertex shader's shear
+    // (geom.x += side*spread*h², then ×0.92 cheek scale). h = dir.y. So the fuzz
+    // slides outward at the top exactly as the cheeks spread — it's glued to the mesh.
+    h.root.set(h.base.x + 0.92 * h.side * buttSpread * h.dy * h.dy, h.base.y, h.base.z);
     h.nodes[0].pos.copy(h.root);
     h.nodes[0].prev.copy(h.root);
     // verlet + gravity
@@ -633,15 +679,23 @@ function updateHairs(t) {
       nd.prev.copy(nd.pos);
       nd.pos.x += vx + wind; nd.pos.y += vy + HAIR_GRAV; nd.pos.z += vz;
     }
-    // stiffness — pull back toward standing along the normal
+    // bending stiffness — each node tries to CONTINUE the previous segment's
+    // direction (the root normal for the first segment). Because the target is
+    // relative to the chain (not an absolute pose pinned to the root), the tip
+    // lags and follows the root through the chain instead of moving rigidly with it.
     for (let i = 1; i < HNODE; i++) {
-      const nd = h.nodes[i].pos;
-      const rx = h.root.x + h.nrm.x * hseg * i;
-      const ry = h.root.y + h.nrm.y * hseg * i;
-      const rz = h.root.z + h.nrm.z * hseg * i;
-      nd.x += (rx - nd.x) * HAIR_STIFF;
-      nd.y += (ry - nd.y) * HAIR_STIFF;
-      nd.z += (rz - nd.z) * HAIR_STIFF;
+      let dx, dy, dz;
+      if (i === 1) { dx = h.nrm.x; dy = h.nrm.y; dz = h.nrm.z; }
+      else {
+        const p2 = h.nodes[i - 2].pos, p1 = h.nodes[i - 1].pos;
+        dx = p1.x - p2.x; dy = p1.y - p2.y; dz = p1.z - p2.z;
+        const l = Math.hypot(dx, dy, dz) || 1e-5; dx /= l; dy /= l; dz /= l;
+      }
+      const prev = h.nodes[i - 1].pos, nd = h.nodes[i].pos;
+      const tx = prev.x + dx * hseg, ty = prev.y + dy * hseg, tz = prev.z + dz * hseg;
+      nd.x += (tx - nd.x) * HAIR_BEND;
+      nd.y += (ty - nd.y) * HAIR_BEND;
+      nd.z += (tz - nd.z) * HAIR_BEND;
     }
     // keep segment lengths from the root outward
     for (let it = 0; it < 2; it++) {
@@ -665,6 +719,35 @@ function updateHairs(t) {
   }
   hairGeo.attributes.position.needsUpdate = true;
 }
+
+// ── Butthole: an asterisk pucker that tightens & expands ──────────────────────
+// A flat decal sitting in the crack, facing the viewer (depthTest off so it always
+// reads on top). Its scale is driven by buttSpread, so it puckers tight at rest and
+// opens up as the cheeks spread when you type.
+function makeAsteriskTex() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.translate(64, 64);
+  x.strokeStyle = '#7e3344'; x.lineCap = 'round';
+  const ARMS = 6;
+  for (let i = 0; i < ARMS; i++) {
+    x.save(); x.rotate(i / ARMS * Math.PI * 2);
+    x.lineWidth = 13;
+    x.beginPath(); x.moveTo(0, 6); x.lineTo(0, 52); x.stroke();
+    x.restore();
+  }
+  x.fillStyle = '#561f2c'; x.beginPath(); x.arc(0, 0, 13, 0, Math.PI * 2); x.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const SHOW_BUTTHOLE = false;   // flip to true to bring the asterisk butthole back
+const buttholeMat = new THREE.MeshBasicMaterial({ map: makeAsteriskTex(), transparent: true, opacity: 0, depthTest: false, depthWrite: false });
+const butthole    = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.17), buttholeMat);
+butthole.position.copy(FOUNTAIN_POS);   // exactly where the letters fart out
+butthole.rotation.x = -0.95;            // tilt to face up-and-toward the viewer
+butthole.renderOrder = 12;
+butthole.visible = false;               // only appears once the butt spreads wide
+garden.add(butthole);
 
 // ── Lighting ──────────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xffffff, 0.3));
@@ -785,8 +868,8 @@ function spawnLetter(char) {
 
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.14), mat);
 
-  // Spread the cheeks — each keystroke gives the butt a little clench-and-part.
-  buttSpreadTarget = Math.min(0.20, buttSpreadTarget + 0.08);
+  // Spread the cheeks — each keystroke gives the butt a clench-and-part.
+  buttSpreadTarget = Math.min(0.34, buttSpreadTarget + 0.11);
   tailKick(0.05);   // and flick the tail
   hairKick(0.012);  // and shiver the fuzz
 
@@ -794,11 +877,11 @@ function spawnLetter(char) {
   const worldFountain = FOUNTAIN_POS.clone().applyMatrix4(garden.matrixWorld);
   mesh.position.copy(worldFountain);
 
-  // Fart plume: erupts straight up (+y), with a little sideways scatter; gravity arcs it back down.
-  const up = 0.055 + Math.random() * 0.035;         // upward thrust
-  const vx = (Math.random() - 0.5) * 0.025;
-  const vy = up;
-  const vz = (Math.random() - 0.5) * 0.025;
+  // Cannon plume: fires along the barrel (the tilted crack direction); gravity arcs it.
+  const up = 0.06 + Math.random() * 0.035;          // muzzle velocity
+  const vx = BARREL.x * up + (Math.random() - 0.5) * 0.02;
+  const vy = BARREL.y * up + (Math.random() - 0.5) * 0.02;
+  const vz = BARREL.z * up + (Math.random() - 0.5) * 0.02;
 
   scene.add(mesh);
   fallingLetters.push({
@@ -850,6 +933,15 @@ let _fpsCount = 0, _fpsLast = 0, _fpsCurrent = 0;
   leftMat.uniforms.uSpread.value  = buttSpread;
   rightMat.uniforms.uSpread.value = buttSpread;
 
+  garden.position.y = BASE_Y;   // stay locked to the base of the screen
+
+  // butthole puckers open as the cheeks spread (shows readily now)
+  const vis = SHOW_BUTTHOLE ? THREE.MathUtils.clamp((buttSpread - 0.05) / 0.10, 0, 1) : 0;
+  butthole.visible = vis > 0.01;
+  buttholeMat.opacity = vis;
+  const puck = THREE.MathUtils.clamp(0.6 + buttSpread * 3.0 + Math.sin(elapsed * 2.0) * 0.04, 0.4, 1.5);
+  butthole.scale.setScalar(puck);
+
   // curly tail physics + rebuild its tube
   updateTail();
   buildTailMesh();
@@ -885,16 +977,6 @@ let _fpsCount = 0, _fpsLast = 0, _fpsCurrent = 0;
   }
 
   renderer.render(scene, camera);
-
-  // Keep status panel anchored to top-right of the butt
-  if (statusPanel) {
-    _spTmp.set(garden.position.x + 0.4, garden.position.y + 0.45, garden.position.z);
-    _spTmp.project(camera);
-    const sx = ((_spTmp.x + 1) / 2) * window.innerWidth;
-    const sy = ((1 - _spTmp.y) / 2) * window.innerHeight;
-    statusPanel.style.left = Math.max(4, sx | 0) + 'px';
-    statusPanel.style.top  = Math.max(4, sy | 0) + 'px';
-  }
 })();
 
 
@@ -918,45 +1000,6 @@ let _fpsCount = 0, _fpsLast = 0, _fpsCurrent = 0;
 
     const { invoke } = window.__TAURI__.core;
 
-    // ── Status panel ─────────────────────────────────────────────────────────
-    statusPanel = document.createElement('div');
-    statusPanel.style.cssText = [
-      'position:fixed;z-index:500;pointer-events:auto',
-      'background:rgba(6,8,18,0.82);backdrop-filter:blur(12px)',
-      'border:1px solid rgba(255,255,255,0.12);border-radius:10px',
-      'padding:9px 13px;min-width:168px',
-      'font:11px/1.65 -apple-system,BlinkMacSystemFont,"SF Pro Text",monospace',
-      'color:#c8c8e0;user-select:none',
-    ].join(';');
-    statusPanel.innerHTML = `
-      <div style="font-size:9px;font-weight:700;letter-spacing:1.2px;opacity:0.38;margin-bottom:5px">PERMISSIONS</div>
-      <div id="sp-items"><div style="opacity:0.4">checking…</div></div>
-      <div id="sp-fps" style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.08);opacity:0.45;font-size:10px">— fps</div>
-    `;
-    document.body.appendChild(statusPanel);
-
-    async function refreshStatus() {
-      const el = document.getElementById('sp-items');
-      if (!el) return;
-      try {
-        const perms = await invoke('check_permissions');
-        const row = (label, ok, key) => {
-          const col = ok ? '#4cde82' : '#ff5f5f';
-          const fix = ok ? '' : ` — <span data-perm="${key}" style="cursor:pointer;text-decoration:underline;opacity:0.7">fix</span>`;
-          return `<div style="color:${col}">${ok ? '●' : '○'} ${label}${fix}</div>`;
-        };
-        el.innerHTML = row('Screen Recording', perms.screen_capture,   'screen_capture')
-                     + row('Input Monitoring', perms.input_monitoring, 'input_monitoring');
-        el.querySelectorAll('[data-perm]').forEach(s =>
-          s.addEventListener('click', () => invoke('open_permission_settings', { permission: s.dataset.perm }))
-        );
-      } catch(e) {
-        el.innerHTML = '<div style="opacity:0.4">unavailable</div>';
-      }
-    }
-    refreshStatus();
-    setInterval(refreshStatus, 6000);
-
     // ── Click-through tracking ───────────────────────────────────────────────
     let overGarden = false;
 
@@ -968,12 +1011,8 @@ let _fpsCount = 0, _fpsLast = 0, _fpsCurrent = 0;
         const cx = (gp.x + 1) / 2 * window.innerWidth;
         const cy = (1 - gp.y) / 2 * window.innerHeight;
         const overButt = (gx - cx) ** 2 + (gy - cy) ** 2 < 180 * 180;
-        // Status panel
-        const panelX = parseFloat(statusPanel?.style.left) || 0;
-        const panelY = parseFloat(statusPanel?.style.top) || 0;
-        const overPanel = gx >= panelX && gx <= panelX + 230 && gy >= panelY && gy <= panelY + 100;
         // while the permission popup is up, keep the whole window clickable
-        const hit = window.__permOverlayActive || overButt || overPanel;
+        const hit = window.__permOverlayActive || overButt;
         if (!dragging && hit !== overGarden) {
           overGarden = hit;
           await appWindow.setIgnoreCursorEvents(!hit);
@@ -983,7 +1022,7 @@ let _fpsCount = 0, _fpsLast = 0, _fpsCurrent = 0;
     }
     pollMouse();
 
-    // Drag the butt within the scene (not the whole window)
+    // Drag the butt along the base of the screen (horizontal only — y is locked)
     let dragging = false, dragLast = null;
     const fovRad = camera.fov * Math.PI / 180;
     const dragScale = () => 2 * Math.tan(fovRad / 2) * camera.position.z / window.innerHeight;
@@ -997,19 +1036,18 @@ let _fpsCount = 0, _fpsLast = 0, _fpsCurrent = 0;
     renderer.domElement.addEventListener('pointermove', (e) => {
       if (!dragging) return;
       const s  = dragScale();
-      garden.position.x += (e.clientX - dragLast.x) * s;
-      garden.position.y -= (e.clientY - dragLast.y) * s;
+      garden.position.x += (e.clientX - dragLast.x) * s;   // slide sideways only
       dragLast = { x: e.clientX, y: e.clientY };
     });
     renderer.domElement.addEventListener('pointerup', () => { dragging = false; dragLast = null; });
 
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') appWindow.close(); });
 
-    // Pop a permission window only if something's missing; otherwise nothing shows.
-    guardPermissions(['screen_capture', 'input_monitoring'], {
-      note: 'This widget needs a couple of macOS permissions to react to audio and your typing.',
+    // Only Input Monitoring is required (to catch keystrokes). Screen Recording was
+    // only for the audio-reactive flush — optional, so we don't gate on it.
+    guardPermissions(['input_monitoring'], {
+      note: 'This widget needs Input Monitoring so it can fart confetti words as you type.',
       descriptions: {
-        screen_capture:   'Used to capture system audio levels — the butt flushes with your music.',
         input_monitoring: 'Used to catch your keystrokes and fart out the confetti words.',
       },
     });
