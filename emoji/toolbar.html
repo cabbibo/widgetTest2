@@ -35,11 +35,18 @@
       background: rgba(255,90,90,0.12); border: 1px solid rgba(255,90,90,0.3); border-radius: 9px;
       color: #ff8d8d; font-size: 12px; font-weight: 600; letter-spacing: 0.4px; padding: 7px; cursor: pointer; }
     .pick-remove:hover { background: rgba(255,90,90,0.22); }
-    .pick-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-bottom: 10px; }
-    .pick-plabel { font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.4; margin-right: 2px; }
-    .preset { font-size: 11px; color: #cdd3e8; background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 5px 9px; cursor: pointer; }
-    .preset:hover { background: rgba(122,162,255,0.25); border-color: #5a7dff; }
+    .pick-packs { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .pack-select { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 8px; color: #fff; font-size: 12px; padding: 5px 8px; outline: none; cursor: pointer; }
+    .pack-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 8px; color: #cdd3e8; font-size: 12px; padding: 5px 9px; cursor: pointer; white-space: nowrap; }
+    .pack-btn:hover { background: rgba(122,162,255,0.25); border-color: #5a7dff; }
+    .pack-btn.del:disabled { opacity: 0.35; cursor: default; }
+    .pack-btn.del:disabled:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.16); }
+    .pack-name { display: flex; gap: 6px; margin-bottom: 8px; }
+    .pack-name input { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 8px; color: #fff; font-size: 13px; padding: 6px 9px; outline: none; }
+    .pack-name button { background: #5a7dff; border: none; border-radius: 8px; color: #fff; font-size: 12px; padding: 6px 13px; cursor: pointer; }
     .pick-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px;
       max-height: 244px; overflow-y: auto; overscroll-behavior: contain; }
     .pick-grid::-webkit-scrollbar { width: 8px; }

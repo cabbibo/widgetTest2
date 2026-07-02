@@ -84,6 +84,16 @@ const RIM = LENS_PX / 2;
     stage.appendChild(lens);
     const lensCtx = lens.getContext('2d', { willReadFrequently: true });
 
+    // Highlight lives on its own canvas, redrawn only when the focused word changes
+    // (not every magnify frame) — the bloom's shadowBlur is too costly per-frame.
+    const hl = document.createElement('canvas');
+    hl.width = OUT; hl.height = OUT;
+    hl.style.cssText =
+      'position:absolute;left:50%;top:50%;width:' + LENS_PX + 'px;height:' + LENS_PX + 'px;transform:translate(-50%,-50%);' +
+      'border-radius:50%;pointer-events:none;mix-blend-mode:screen;';
+    stage.appendChild(hl);
+    const hlCtx = hl.getContext('2d');
+
     const glare = document.createElement('div');
     glare.style.cssText =
       'position:absolute;left:50%;top:50%;width:' + LENS_PX + 'px;height:' + LENS_PX + 'px;transform:translate(-50%,-50%);' +
@@ -157,25 +167,29 @@ const RIM = LENS_PX / 2;
       lensCtx.putImageData(out, 0, 0);
     }
 
-    // Curved, bloomy highlight on the focused word (box in glass-canvas px)
+    // Curved, bloomy highlight on the focused word — drawn on its own canvas only
+    // when the word changes, so it costs nothing per magnify frame.
+    let hlShown = false;
     function drawHighlight(b) {
-      if (!b) return;
+      if (!b) { if (hlShown) { hlCtx.clearRect(0, 0, OUT, OUT); hlShown = false; } return; }
+      hlShown = true;
       const rx = Math.min(b.w * 0.6 + 11, RR), ry = Math.min(b.h * 0.95 + 9, RR);
-      lensCtx.save();
-      lensCtx.beginPath(); lensCtx.arc(C, C, RR - 1, 0, Math.PI * 2); lensCtx.clip();
-      lensCtx.globalCompositeOperation = 'lighter';
-      const g = lensCtx.createRadialGradient(b.cx, b.cy, 0, b.cx, b.cy, Math.max(rx, ry));
+      hlCtx.clearRect(0, 0, OUT, OUT);
+      hlCtx.save();
+      hlCtx.beginPath(); hlCtx.arc(C, C, RR - 1, 0, Math.PI * 2); hlCtx.clip();
+      hlCtx.globalCompositeOperation = 'lighter';
+      const g = hlCtx.createRadialGradient(b.cx, b.cy, 0, b.cx, b.cy, Math.max(rx, ry));
       g.addColorStop(0,    'rgba(255,249,228,0.72)');
       g.addColorStop(0.45, 'rgba(255,226,172,0.30)');
       g.addColorStop(1,    'rgba(255,210,150,0)');
-      lensCtx.fillStyle = g;
-      lensCtx.beginPath(); lensCtx.ellipse(b.cx, b.cy, rx, ry, 0, 0, Math.PI * 2); lensCtx.fill();
-      lensCtx.strokeStyle = 'rgba(255,150,110,0.85)';
-      lensCtx.lineWidth = 2.2;
-      lensCtx.shadowColor = 'rgba(255,110,80,0.9)';
-      lensCtx.shadowBlur = 12;
-      lensCtx.beginPath(); lensCtx.ellipse(b.cx, b.cy, rx + 1, ry + 1, 0, 0, Math.PI * 2); lensCtx.stroke();
-      lensCtx.restore();
+      hlCtx.fillStyle = g;
+      hlCtx.beginPath(); hlCtx.ellipse(b.cx, b.cy, rx, ry, 0, 0, Math.PI * 2); hlCtx.fill();
+      hlCtx.strokeStyle = 'rgba(255,150,110,0.85)';
+      hlCtx.lineWidth = 2.2;
+      hlCtx.shadowColor = 'rgba(255,110,80,0.9)';
+      hlCtx.shadowBlur = 12;
+      hlCtx.beginPath(); hlCtx.ellipse(b.cx, b.cy, rx + 1, ry + 1, 0, 0, Math.PI * 2); hlCtx.stroke();
+      hlCtx.restore();
     }
 
     // ── Floating annotations (plain backgrounds — no backdrop blur) ─────────────
@@ -385,13 +399,13 @@ const RIM = LENS_PX / 2;
         const sf = window.devicePixelRatio;
         curCx = pos.x / sf + LCX; curCy = pos.y / sf + LCY;
         const key = (curCx | 0) + ',' + (curCy | 0);
-        if (key !== lastKey) { lastKey = key; moveSeq++; lastMoveAt = performance.now(); focusBox = null; }
+        if (key !== lastKey) { lastKey = key; moveSeq++; lastMoveAt = performance.now(); if (focusBox) { focusBox = null; drawHighlight(null); } }
         const buf = await invoke('capture_region_raw', { cx: curCx, cy: curCy, region: CAP, outSize: OUT });
         const src = new Uint8ClampedArray(buf);
-        if (src.length === N * 4) { renderGlass(src); drawHighlight(focusBox); }
+        if (src.length === N * 4) renderGlass(src);
       } catch (e) { /* transient */ }
       mBusy = false;
-      setTimeout(magnifyLoop, 12);
+      setTimeout(magnifyLoop, 6);
     }
 
     async function ocrLoop() {
@@ -401,7 +415,7 @@ const RIM = LENS_PX / 2;
         // Only OCR once the lens has been still briefly (so a drag doesn't fire OCR
         // every frame and fight the magnify for the window server), or periodically.
         const now = performance.now();
-        const settled = now - lastMoveAt > 130;
+        const settled = now - lastMoveAt > 80;
         if ((moveSeq !== lastOcrSeq && settled) || now - lastOcr > 900) {
           lastOcrSeq = moveSeq; lastOcr = now;
           const json = await invoke('ocr_words', { title: TITLE, cx: curCx, cy: curCy, region: OCR_REG, outPx: OCR_OUT });
@@ -417,6 +431,7 @@ const RIM = LENS_PX / 2;
             const cxg = (0.5 + (best.x + best.w / 2 - 0.5) * OCR_REG / CAP) * OUT;
             const cyg = (0.5 + (best.y + best.h / 2 - 0.5) * OCR_REG / CAP) * OUT;
             focusBox = { cx: cxg, cy: cyg, w: best.w * k, h: best.h * k };
+            drawHighlight(focusBox);
             const w = best.t.replace(/[^A-Za-z'-]/g, '').toLowerCase();
             if (w.length > 1 && w !== lastLookup) {
               lastLookup = w;
@@ -425,7 +440,7 @@ const RIM = LENS_PX / 2;
               if (dd && dd.word) showLookup(dd); else clearLookup();
             }
           } else if (focusBox || lastLookup) {
-            focusBox = null; lastLookup = ''; clearLookup();
+            focusBox = null; lastLookup = ''; drawHighlight(null); clearLookup();
           }
         }
       } catch (e) { /* transient */ }

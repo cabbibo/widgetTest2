@@ -206,7 +206,13 @@ import { guardPermissions } from './permissions.js';
     async function poll() {
       try {
         const wins = await invoke('list_windows');
-        windows = wins.filter(w => !(w.name || '').startsWith('widget-'));
+        windows = wins.filter(w => {
+          const name = w.name || '', app = (w.app || '').toLowerCase();
+          if (name.startsWith('widget-')) return false;                 // our titled windows
+          if (app.includes('widget') || app.includes('tassels')) return false; // our app
+          if (w.x <= 0 && w.y <= 0 && w.w >= scrW - 2 && w.h >= scrH - 2) return false; // our fullscreen overlay
+          return true;
+        });
         const [mx, my] = await invoke('mouse_position');
         mouseX = mx; mouseY = my;
         const op = await appWindow.outerPosition();
@@ -237,13 +243,20 @@ import { guardPermissions } from './permissions.js';
       }
       if (!meshes.length) { renderer.render(scene, camera); return; }
 
-      // 1. Refresh anchors; mark occlusion against windows in front (earlier in list)
+      // 1. Refresh anchors; mark occlusion against windows in front (earlier in list).
+      //    "Front window only" → the frontmost *real* window, skipping small widget/panel
+      //    windows (other widgets, pills, etc.) that sit at the top of the z-order.
+      let active = windows;
+      if (S.primaryOnly) {
+        const front = windows.find(w => w.w >= 200 && w.h >= 150) || windows[0];
+        active = front ? [front] : [];
+      }
       const seen = new Set();
-      for (let wi = 0; wi < windows.length; wi++) {
-        const win = windows[wi];
+      for (let wi = 0; wi < active.length; wi++) {
+        const win = active[wi];
         const { x, y, w, h } = win;
         if (w < 20 || h < 20) continue;
-        const fronts = windows.slice(0, wi);
+        const fronts = active.slice(0, wi);
         const perim = 2 * (w + h);
         const n = Math.min(220, Math.max(4, Math.round(perim / S.spacing)));
         const wkey = `${win.app}|${win.name}|${Math.round(w)}x${Math.round(h)}`;

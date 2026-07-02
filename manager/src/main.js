@@ -11,21 +11,26 @@ const appWindow = getCurrentWindow();
 
 const pill = document.getElementById('pill');
 let visible = true;
+let parked = false;   // we centre the pillbox once, then leave it wherever it's dragged
 let widgets = [];   // [{id, name, glyph, exec, running}]
 
 // ── Window sizing + parking ───────────────────────────────────────────────────
-// Size the transparent window to the pill's real width, then re-centre it under
-// the menu bar so it stays put as chips appear/disappear.
-async function fitAndPark() {
+// Keep the transparent window snug around the pill as chips appear/disappear.
+// The window's top-left is preserved, so toggling a widget never moves the box;
+// we only centre it under the menu bar on the very first render.
+async function fit() {
   await new Promise((r) => requestAnimationFrame(r));
   const r = pill.getBoundingClientRect();
-  const w = Math.ceil(r.width) + 24;       // + #wrap padding
-  const h = Math.ceil(r.height) + 16;
-  await appWindow.setSize(new LogicalSize(Math.max(120, w), Math.max(56, h)));
-  const m = await currentMonitor();
-  if (m) {
-    const sw = m.size.width / m.scaleFactor;
-    await appWindow.setPosition(new LogicalPosition(Math.round(sw / 2 - w / 2), 34));
+  const w = Math.max(120, Math.ceil(r.width) + 24);   // + #wrap padding
+  const h = Math.max(56, Math.ceil(r.height) + 16);
+  await appWindow.setSize(new LogicalSize(w, h));
+  if (!parked) {
+    parked = true;
+    const m = await currentMonitor();
+    if (m) {
+      const sw = m.size.width / m.scaleFactor;
+      await appWindow.setPosition(new LogicalPosition(Math.round(sw / 2 - w / 2), 34));
+    }
   }
 }
 
@@ -45,7 +50,7 @@ function render() {
     const e = document.createElement('div'); e.className = 'empty';
     e.textContent = 'No widgets yet. Launch each widget once and it registers itself here.';
     pill.appendChild(e);
-    fitAndPark();
+    fit();
     return;
   }
 
@@ -67,7 +72,7 @@ function render() {
     };
     pill.appendChild(chip);
   }
-  fitAndPark();
+  fit();
 }
 
 // ── State polling ─────────────────────────────────────────────────────────────

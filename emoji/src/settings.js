@@ -54,12 +54,14 @@ export const SCHEMA = [
   { key: 'lineOpacity',  label: 'Line opacity',    min: 0,    max: 1,    step: 0.05,  def: 0.6,   group: 'Look' },
   { key: 'dotSize',      label: 'Dot size',        min: 0,    max: 12,   step: 0.5,   def: 5,     group: 'Look' },
   { key: 'showToolbar',  label: 'Show toolbar',    type: 'toggle', def: true,         group: 'Look' },
+  { key: 'primaryOnly',  label: 'Front window only', type: 'toggle', def: false,       group: 'Look' },
 ];
 
 export const GROUPS = [...new Set(SCHEMA.map(s => s.group))];
 
 export function defaults() {
-  const o = { emojis: [...DEFAULT_EMOJIS] };
+  // packs = user-saved packs; hiddenPacks = built-in pack names the user deleted
+  const o = { emojis: [...DEFAULT_EMOJIS], packs: [], hiddenPacks: [] };
   for (const s of SCHEMA) o[s.key] = s.def;
   return o;
 }
@@ -77,6 +79,16 @@ export function applyJSON(target, json) {
   if (Array.isArray(saved.emojis)) {
     const e = saved.emojis.filter(x => typeof x === 'string' && x.length).slice(0, 24);
     if (e.length) target.emojis = e;
+  }
+  if (Array.isArray(saved.packs)) {
+    target.packs = saved.packs
+      .filter(p => p && typeof p.name === 'string' && Array.isArray(p.emojis))
+      .map(p => ({ name: p.name.slice(0, 24), emojis: p.emojis.filter(x => typeof x === 'string' && x).slice(0, 24) }))
+      .filter(p => p.emojis.length)
+      .slice(0, 50);
+  }
+  if (Array.isArray(saved.hiddenPacks)) {
+    target.hiddenPacks = saved.hiddenPacks.filter(x => typeof x === 'string');
   }
   return target;
 }

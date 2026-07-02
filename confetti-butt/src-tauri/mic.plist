@@ -6,5 +6,9 @@
     <string>Used to visualize system audio levels</string>
     <key>NSInputMonitoringUsageDescription</key>
     <string>Used to spawn letters from keypresses</string>
+    <key>WidgetDock</key>
+    <true/>
+    <key>WidgetDockGlyph</key>
+    <string>🎉</string>
 </dict>
 </plist>

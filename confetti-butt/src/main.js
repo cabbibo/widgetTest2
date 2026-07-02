@@ -20,10 +20,12 @@ document.body.appendChild(renderer.domElement);
 renderer.domElement.addEventListener('webglcontextlost', (e) => {
   e.preventDefault();           // required so the browser will fire 'restored'
   console.warn('WebGL context lost — will restore');
+  setWidgetHidden(true);        // occluded → drop confetti spawns
 }, false);
 renderer.domElement.addEventListener('webglcontextrestored', () => {
   console.warn('WebGL context restored');
   renderer.setClearColor(0x000000, 0);
+  setWidgetHidden(false);       // back on screen → one little burst
   // three.js reinitialises its GL state automatically on the next render()
 }, false);
 
@@ -287,11 +289,15 @@ const fleshVert = `
   varying vec3 vViewPos;
   varying vec3 vLocalPos;
   void main() {
-    // Anchor the flat base (y≈0), lean the top outward → the cheeks deform open
-    // instead of sliding apart. Lean scales with height up the dome.
+    // Soft-body spread. prof is a rounded height profile (smoothstep, not h^2) so
+    // the cheek bulges open as a soft mass instead of pinching to a sharp top.
     float h    = clamp(position.y / uRadius, 0.0, 1.0);
+    float prof = smoothstep(0.1, 0.95, h);
     vec3  pos  = position;
-    pos.x += uSide * uSpread * h * h;   // h² so the very top opens most
+    float puff = 1.0 + uSpread * 0.6 * prof;   // fatten the cheek (jelly bulge)
+    pos.x *= puff;
+    pos.z *= puff;
+    pos.x += uSide * uSpread * prof;            // and bulge the upper cheek outward
 
     vNormal     = normalize(normalMatrix * normal);
     vec4 mv     = modelViewMatrix * vec4(pos, 1.0);
@@ -307,6 +313,7 @@ const fleshFrag = `
   uniform vec3  uSSSColor;   // shadow / rim tint
   uniform float uFlush;      // 0..1 audio-driven flush / glow boost
   uniform float uTime;
+  uniform float uFadeY;      // local-y where the bottom fade starts (-1000 = no fade)
   uniform vec3  uLight;      // key-light direction in view space (driven by the cursor)
   varying vec3 vNormal;
   varying vec3 vViewPos;
@@ -336,7 +343,11 @@ const fleshFrag = `
     col += spec * 0.45;
 
     col += uColor * uFlush * 0.30;   // whole-cheek flush on audio peaks
-    gl_FragColor = vec4(col, 1.0);
+
+    // Soften the bottom: fade the lower edge to transparent so the butt melts into
+    // the screen base instead of ending on a hard rim. uFadeY<0 disables (e.g. tail).
+    float a = (uFadeY > -900.0) ? smoothstep(uFadeY, uFadeY + 0.18, vLocalPos.y) : 1.0;
+    gl_FragColor = vec4(col, a);
   }
 `;
 
@@ -350,6 +361,7 @@ function makeFleshMat(side) {
     vertexShader:   fleshVert,
     fragmentShader: fleshFrag,
     side: THREE.FrontSide,
+    transparent: true,            // for the soft bottom-edge fade
     uniforms: {
       uColor:    { value: new THREE.Color(SKIN_COLOR) },
       uSSSColor: { value: new THREE.Color(SSS_COLOR)  },
@@ -359,6 +371,8 @@ function makeFleshMat(side) {
       uSpread:   { value: 0.0 },
       uSide:     { value: side },
       uRadius:   { value: 0.34 },   // matches CHEEK_R below
+      // cheeks fade out near their base; the tail (side 0) keeps a hard surface
+      uFadeY:    { value: side === 0 ? -1000.0 : -0.05 },
     },
   });
 }
@@ -484,7 +498,7 @@ leftCheek.position.set(-BASE_GAP, 0, 0);
 rightCheek.position.set(BASE_GAP, 0, 0);
 
 // Spread state — bumped on every keypress, eases back to rest each frame.
-let buttSpread = 0, buttSpreadTarget = 0;
+let buttSpread = 0, buttSpreadTarget = 0, buttVel = 0;
 
 // ── Curly pig tail (verlet physics) ───────────────────────────────────────────
 // Rest shape: a corkscrew spiral in the X-Y plane, anchored at the upper-back of
@@ -664,10 +678,16 @@ function hairKick(strength) {
 function updateHairs(t) {
   const wind = Math.sin(t * 1.3) * 0.00035;        // gentle breeze
   for (const h of hairs) {
-    // Move the root with the live cheek surface: replay the vertex shader's shear
-    // (geom.x += side*spread*h², then ×0.92 cheek scale). h = dir.y. So the fuzz
-    // slides outward at the top exactly as the cheeks spread — it's glued to the mesh.
-    h.root.set(h.base.x + 0.92 * h.side * buttSpread * h.dy * h.dy, h.base.y, h.base.z);
+    // Move the root with the live cheek surface: replay the vertex shader's
+    // soft-body deform (puff + rounded bulge) on the CPU so the fuzz stays glued.
+    const prof = THREE.MathUtils.smoothstep(h.dy, 0.1, 0.95);
+    const puff = 1 + buttSpread * 0.6 * prof;
+    const geomX = h.base.x - h.side * BASE_GAP;            // = 0.92·dir.x·R (pre-offset)
+    h.root.set(
+      geomX * puff + 0.92 * h.side * buttSpread * prof + h.side * BASE_GAP,
+      h.base.y,
+      h.base.z * puff,
+    );
     h.nodes[0].pos.copy(h.root);
     h.nodes[0].prev.copy(h.root);
     // verlet + gravity
@@ -811,6 +831,23 @@ const squareFrag = `
 const fallingLetters = [];
 const GRAVITY = 0.002;
 
+// Hide/respawn handling: while hidden we DROP confetti spawns (so a backlog of
+// keystrokes typed while hidden doesn't flood in on return), and when the widget
+// comes back we swallow that flushed backlog and pop a single little burst.
+let widgetHidden = false, spawnIgnoreUntil = 0;
+function setWidgetHidden(h) {
+  if (h === widgetHidden) return;
+  widgetHidden = h;
+  if (!h) {
+    spawnIgnoreUntil = performance.now() + 300;   // swallow the flushed backlog
+    spawnBurst();                                 // one little welcome-back burst
+  }
+}
+function spawnBurst() {
+  for (let i = 0; i < 3; i++) spawnLetter(String.fromCharCode(65 + (Math.random() * 26 | 0)), true);
+}
+document.addEventListener('visibilitychange', () => setWidgetHidden(document.hidden));
+
 // Puff cloud rides along with the letter's fart plume (base velocity bvx/bvy/bvz).
 function spawnPuff(worldPos, bvx, bvy, bvz) {
   for (let i = 0; i < 10; i++) {
@@ -839,7 +876,11 @@ function spawnPuff(worldPos, bvx, bvy, bvz) {
   }
 }
 
-function spawnLetter(char) {
+function spawnLetter(char, force) {
+  // Drop spawns while hidden, and for a moment after returning (swallows the
+  // backlog of keystrokes typed while hidden). The welcome-back burst forces through.
+  if (!force && (widgetHidden || performance.now() < spawnIgnoreUntil)) return;
+
   const c = document.createElement('canvas');
   c.width = 128; c.height = 128;
   const ctx = c.getContext('2d');
@@ -926,10 +967,12 @@ let _fpsCount = 0, _fpsLast = 0, _fpsCurrent = 0;
 
   // no rotation — the butt faces straight up so the confetti farts vertically
 
-  // ease the cheek spread: target relaxes each frame, current chases it.
-  // The tops of the cheeks lean apart (shader deform); the bases stay anchored.
-  buttSpreadTarget *= 0.90;
-  buttSpread += (buttSpreadTarget - buttSpread) * 0.35;
+  // Soft-body spread: a gentle, floaty underdamped spring — low force so it drifts
+  // out and claps back softly rather than snapping.
+  buttSpreadTarget *= 0.90;                                  // target lingers (floatier)
+  buttVel += (buttSpreadTarget - buttSpread) * 0.15;         // gentle out-push (softer)
+  buttVel *= 0.87;                                           // keeps motion (floaty)
+  buttSpread = THREE.MathUtils.clamp(buttSpread + buttVel, -0.08, 0.6);
   leftMat.uniforms.uSpread.value  = buttSpread;
   rightMat.uniforms.uSpread.value = buttSpread;
 

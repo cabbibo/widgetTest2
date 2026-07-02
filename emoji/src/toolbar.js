@@ -170,16 +170,62 @@ function openPicker(mode) {
   renderPill();           // highlight the emoji being edited
   picker.innerHTML = '';
 
-  // presets — swap the whole set to a curated pack
-  const presets = document.createElement('div'); presets.className = 'pick-presets';
-  const plabel = document.createElement('span'); plabel.className = 'pick-plabel'; plabel.textContent = 'Packs:';
-  presets.appendChild(plabel);
-  for (const [name, list] of Object.entries(PREFABS)) {
-    const p = document.createElement('button'); p.className = 'preset'; p.textContent = name;
-    p.onclick = () => { S.emojis = list.slice(0, 24); persist(); pushLive(); renderPill(); collapse(); };
-    presets.appendChild(p);
+  // ── Packs: choose a pack, save the current set as one, or delete a custom one ──
+  const packsRow = document.createElement('div'); packsRow.className = 'pick-packs';
+  const sel  = document.createElement('select'); sel.className = 'pack-select';
+  const save = document.createElement('button'); save.className = 'pack-btn'; save.textContent = '＋ pack'; save.title = 'Save current emojis as a pack';
+  const del  = document.createElement('button'); del.className = 'pack-btn del'; del.textContent = '🗑'; del.title = 'Delete selected pack'; del.disabled = true;
+  packsRow.appendChild(sel); packsRow.appendChild(save); packsRow.appendChild(del);
+  picker.appendChild(packsRow);
+
+  const nameRow = document.createElement('div'); nameRow.className = 'pack-name'; nameRow.style.display = 'none';
+  const nin = document.createElement('input'); nin.placeholder = 'name this pack…'; nin.maxLength = 24;
+  const nok = document.createElement('button'); nok.textContent = 'Save';
+  nameRow.appendChild(nin); nameRow.appendChild(nok);
+  picker.appendChild(nameRow);
+
+  function refreshPacks() {
+    sel.innerHTML = '';
+    sel.appendChild(new Option('Choose a pack…', ''));
+    const builtins = Object.keys(PREFABS).filter(name => !S.hiddenPacks.includes(name));
+    if (builtins.length) {
+      const og1 = document.createElement('optgroup'); og1.label = 'Built-in';
+      for (const name of builtins) og1.appendChild(new Option(name, 'b:' + name));
+      sel.appendChild(og1);
+    }
+    if (S.packs.length) {
+      const og2 = document.createElement('optgroup'); og2.label = 'My packs';
+      S.packs.forEach((p, i) => og2.appendChild(new Option(p.name, 'c:' + i)));
+      sel.appendChild(og2);
+    }
   }
-  picker.appendChild(presets);
+  refreshPacks();
+  sel.onchange = () => {
+    const v = sel.value; del.disabled = !v;   // any selected pack can be deleted
+    if (!v) return;
+    const list = v[0] === 'b' ? PREFABS[v.slice(2)] : (S.packs[+v.slice(2)] || {}).emojis;
+    if (list) { S.emojis = list.slice(0, 24); persist(); pushLive(); renderPill(); }
+  };
+  save.onclick = () => {
+    nameRow.style.display = nameRow.style.display === 'none' ? 'flex' : 'none';
+    if (nameRow.style.display === 'flex') setTimeout(() => nin.focus(), 20);
+  };
+  const doSave = () => {
+    const name = nin.value.trim(); if (!name) return;
+    S.packs.push({ name, emojis: S.emojis.slice(0, 24) });
+    persist(); pushLive();
+    nin.value = ''; nameRow.style.display = 'none';
+    refreshPacks(); sel.value = 'c:' + (S.packs.length - 1); del.disabled = false;
+  };
+  nok.onclick = doSave;
+  nin.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doSave(); } });
+  del.onclick = () => {
+    const v = sel.value; if (!v) return;
+    if (v[0] === 'b') S.hiddenPacks.push(v.slice(2));   // hide a built-in
+    else S.packs.splice(+v.slice(2), 1);                // remove a custom one
+    persist(); pushLive();
+    refreshPacks(); sel.value = ''; del.disabled = true;
+  };
 
   // search box (type a word to filter, or paste an emoji to use directly)
   const inputRow = document.createElement('div'); inputRow.className = 'pick-input';
