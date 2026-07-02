@@ -1,8 +1,8 @@
 name: Build & Release
 
 on:
-  push:
-    branches: [main]
+  # Manual only — builds/releases run when you click "Run workflow" (or ask me to).
+  # No automatic build on push.
   workflow_dispatch:
 
 jobs:
